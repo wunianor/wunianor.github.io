@@ -1,0 +1,22 @@
+baseURL = "https://wunianor.github.io/"
+title = "wunianor"
+languageCode = "zh-cn"
+defaultContentLanguage = "zh"
+
+[params]
+site_name = "wunianor"
+description = "个人技术学习与项目记录"
+
+[module]
+proxy = "direct"
+
+[module.hugoVersion]
+extended = true
+min = "0.110.0"
+
+[[module.imports]]
+path = "github.com/google/docsy/theme"
+disable = false
+
+[markup.goldmark.renderer]
+unsafe = true
