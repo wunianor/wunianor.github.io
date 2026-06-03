@@ -1,0 +1,12 @@
+{{ $menu := .menu -}}
+{{ $active := .active -}}
+<a {{/**/ -}}
+  class="nav-link nav-disabled{{- if $active }} active{{- end }}" {{/**/ -}}
+  href="#"
+  aria-disabled="true"
+  tabindex="-1"
+>
+  {{- $menu.Pre -}}
+  <span>{{ $menu.Name }}</span>
+  {{- $menu.Post -}}
+</a>

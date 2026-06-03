@@ -1,0 +1,24 @@
+[[menus.main]]
+name = "首页"
+identifier = "home"
+weight = 10
+url = "/"
+
+[[menus.main]]
+name = "学习笔记"
+identifier = "notes"
+weight = 20
+url = "/notes/"
+
+[[menus.main]]
+name = "项目"
+identifier = "projects"
+weight = 30
+url = "#"
+params = { disabled = true }
+
+[[menus.main]]
+name = "关于我"
+identifier = "about"
+weight = 40
+url = "/about/"

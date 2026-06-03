@@ -7,6 +7,9 @@ defaultContentLanguage = "zh"
 site_name = "wunianor"
 description = "个人技术学习与项目记录"
 
+[params.ui]
+navbar_logo = false
+
 [module]
 proxy = "direct"
 
