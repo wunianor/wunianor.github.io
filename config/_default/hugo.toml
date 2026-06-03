@@ -6,6 +6,7 @@ defaultContentLanguage = "zh"
 [params]
 site_name = "wunianor"
 description = "个人技术学习与项目记录"
+clarity_id = "YOUR_CLARITY_ID"
 
 [params.ui]
 navbar_logo = false
