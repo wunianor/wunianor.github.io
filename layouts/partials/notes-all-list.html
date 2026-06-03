@@ -1,0 +1,23 @@
+<div class="section-index">
+  <hr class="panel-line">
+  {{ $pages := where .Site.RegularPages "Section" "notes" -}}
+  {{ $pages = where $pages "Kind" "page" -}}
+  {{ $pages = $pages.ByDate.Reverse -}}
+  {{ range $pages -}}
+    {{ $category := index .Params.categories 0 | default .CurrentSection.LinkTitle -}}
+    {{ with $.Site.Params.notes.categories -}}
+      {{ with index . $category -}}
+        {{ $category = . -}}
+      {{ end -}}
+    {{ end -}}
+    <div class="entry">
+      <h5>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+      </h5>
+      <p class="text-muted mb-1">
+        <small>{{ .Date.Format "2006-01-02" }} · {{ $category }}</small>
+      </p>
+      <p>{{ .Description | markdownify }}</p>
+    </div>
+  {{ end -}}
+</div>

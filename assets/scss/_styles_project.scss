@@ -3,3 +3,16 @@
   pointer-events: none;
   cursor: not-allowed;
 }
+
+// Chroma 代码块：深色模式下提升对比度（M7 验收）
+@include color-mode(dark) {
+  .highlight {
+    pre.chroma {
+      background-color: var(--bs-tertiary-bg);
+    }
+
+    .chroma .hl {
+      background-color: rgba(var(--bs-emphasis-color-rgb), 0.12);
+    }
+  }
+}

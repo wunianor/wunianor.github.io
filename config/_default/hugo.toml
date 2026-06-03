@@ -24,3 +24,19 @@ disable = false
 
 [markup.goldmark.renderer]
 unsafe = true
+
+[markup.highlight]
+style = "pygments"
+lineNos = true
+lineNumbersInTable = false
+noClasses = false
+
+[markup.tableOfContents]
+startLevel = 2
+endLevel = 4
+
+[params.notes.categories]
+cpp = "C++"
+go = "Go"
+linux = "Linux"
+mysql = "MySQL"
