@@ -17,6 +17,12 @@ weight = 30
 url = "/projects/"
 
 [[menus.main]]
+name = "作品集"
+identifier = "portfolio"
+weight = 35
+url = "/portfolio/"
+
+[[menus.main]]
 name = "关于我"
 identifier = "about"
 weight = 40

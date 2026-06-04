@@ -7,6 +7,7 @@
 | 用途 | 路径 | 说明 |
 |------|------|------|
 | 学习笔记配图 | `static/images/notes/<slug>/` | `<slug>` 与文章 slug 一致，便于维护 |
+| 作品集封面 | `static/images/portfolio/<slug>/` | `<slug>` 与作品集条目 slug 一致 |
 | 关于页头像（P3） | `static/images/about/` | 预留 |
 
 ## Markdown 引用

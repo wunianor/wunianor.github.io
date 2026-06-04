@@ -1,0 +1,35 @@
+{{ define "main" }}
+<div class="td-content portfolio-page">
+	<h1>{{ .Title }}</h1>
+	{{ with .Params.description }}<div class="lead">{{ . | markdownify }}</div>{{ end }}
+	{{ with .Content }}
+	<div class="portfolio-intro">{{ . }}</div>
+	{{ end }}
+	<div class="portfolio-grid row g-4">
+		{{ range .Pages.ByWeight }}
+		{{ $item := . }}
+		<div class="col-12 col-sm-6 col-lg-4">
+			<article class="portfolio-card card h-100">
+				{{ with $item.Params.cover }}
+				<img class="card-img-top portfolio-card__cover" src="{{ . | relURL }}" alt="{{ $item.Title }} 封面" loading="lazy">
+				{{ end }}
+				<div class="card-body d-flex flex-column">
+					<h2 class="card-title h5">{{ $item.Title }}</h2>
+					{{ with $item.Params.summary }}
+					<p class="card-text portfolio-card__summary flex-grow-1">{{ . }}</p>
+					{{ end }}
+					{{ with $item.Params.link }}
+					<a class="btn btn-outline-primary btn-sm portfolio-card__link align-self-start"
+					   href="{{ . }}"
+					   target="_blank"
+					   rel="noopener noreferrer">
+						{{ $item.Params.link_text | default "查看项目" }}
+					</a>
+					{{ end }}
+				</div>
+			</article>
+		</div>
+		{{ end }}
+	</div>
+</div>
+{{ end }}
