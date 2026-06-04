@@ -1,0 +1,23 @@
+<div class="section-index">
+  <hr class="panel-line">
+  {{ $pages := where .Site.RegularPages "Section" "projects" -}}
+  {{ $pages = where $pages "Kind" "page" -}}
+  {{ $pages = $pages.ByDate.Reverse -}}
+  {{ range $pages -}}
+    {{ $project := .Params.project | default .CurrentSection.LinkTitle -}}
+    {{ with $.Site.Params.projects.names -}}
+      {{ with index . $project -}}
+        {{ $project = . -}}
+      {{ end -}}
+    {{ end -}}
+    <div class="entry">
+      <h5>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+      </h5>
+      <p class="text-muted mb-1">
+        <small>{{ .Date.Format "2006-01-02" }} · {{ $project }}</small>
+      </p>
+      <p>{{ .Description | markdownify }}</p>
+    </div>
+  {{ end -}}
+</div>

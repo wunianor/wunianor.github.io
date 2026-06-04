@@ -40,3 +40,6 @@ cpp = "C++"
 go = "Go"
 linux = "Linux"
 mysql = "MySQL"
+
+[params.projects.names]
+hugo-site = "个人站点"

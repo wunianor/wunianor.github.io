@@ -14,8 +14,7 @@ url = "/notes/"
 name = "项目"
 identifier = "projects"
 weight = 30
-url = "#"
-params = { disabled = true }
+url = "/projects/"
 
 [[menus.main]]
 name = "关于我"
