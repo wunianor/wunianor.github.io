@@ -10,11 +10,7 @@
 	</header>
 	{{ .Render "_td-content-after-header" -}}
 	{{ .Content }}
-	{{ if .Parent.IsHome -}}
-		{{ partial "notes-all-list.html" . -}}
-	{{ else -}}
-		{{ partial "notes-section-index.html" . -}}
-	{{ end -}}
+	{{ partial "blog-all-list.html" . -}}
 	{{ partial "feedback.html" . -}}
 	{{ if (.Site.Config.Services.Disqus.Shortname) -}}
 		<br />

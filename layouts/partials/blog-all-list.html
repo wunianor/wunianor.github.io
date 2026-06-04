@@ -1,12 +1,11 @@
 <div class="section-index">
   <hr class="panel-line">
-  {{ $pages := where .Site.RegularPages "Section" "notes" -}}
+  {{ $pages := where .Site.RegularPages "Section" "blog" -}}
   {{ $pages = where $pages "Kind" "page" -}}
-  {{ $pages = where $pages "Params.type" "!=" "blog" -}}
   {{ $pages = $pages.ByDate.Reverse -}}
   {{ range $pages -}}
-    {{ $category := index .Params.categories 0 | default .CurrentSection.LinkTitle -}}
-    {{ with $.Site.Params.notes.categories -}}
+    {{ $category := index .Params.categories 0 | default "博客" -}}
+    {{ with $.Site.Params.blog.categories -}}
       {{ with index . $category -}}
         {{ $category = . -}}
       {{ end -}}

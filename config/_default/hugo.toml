@@ -41,5 +41,8 @@ go = "Go"
 linux = "Linux"
 mysql = "MySQL"
 
+[params.blog.categories]
+meta = "站点"
+
 [params.projects.names]
 hugo-site = "个人站点"

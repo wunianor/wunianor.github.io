@@ -11,6 +11,12 @@ weight = 20
 url = "/notes/"
 
 [[menus.main]]
+name = "博客"
+identifier = "blog"
+weight = 25
+url = "/blog/"
+
+[[menus.main]]
 name = "项目"
 identifier = "projects"
 weight = 30
