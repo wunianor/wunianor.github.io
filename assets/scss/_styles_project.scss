@@ -49,3 +49,16 @@
     }
   }
 }
+
+// M11 — 导航栏搜索：移动端可用
+@include media-breakpoint-down(lg) {
+  .td-navbar-container {
+    flex-wrap: wrap;
+  }
+
+  .td-navbar__search {
+    order: 3;
+    width: 100%;
+    padding: 0.5rem 0 0.25rem;
+  }
+}

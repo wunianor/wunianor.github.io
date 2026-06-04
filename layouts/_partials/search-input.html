@@ -1,0 +1,22 @@
+{{/* M11: Docsy offline search; Hugo 0.158+ lowercases [params] keys (offlinesearch). */ -}}
+{{ if site.Params.offlinesearch -}}
+{{ $offlineSearchIndex := resources.Get "json/offline-search-index.json" | resources.ExecuteAsTemplate "offline-search-index.json" . -}}
+{{ if hugo.IsProduction -}}
+{{ $offlineSearchIndex = $offlineSearchIndex | fingerprint "md5" -}}
+{{ end -}}
+{{ $offlineSearchLink := $offlineSearchIndex.RelPermalink -}}
+<div class="td-search td-search--offline">
+  <div class="td-search__icon"></div>
+  <input
+    type="search"
+    name="q"
+    class="td-search__input form-control"
+    placeholder='{{ T "ui_search" }}'
+    aria-label='{{ T "ui_search" }}'
+    autocomplete="off"
+    data-offline-search-index-json-src="{{ $offlineSearchLink }}"
+    data-offline-search-base-href="/"
+    data-offline-search-max-results="{{ site.Params.offlinesearchmaxresults | default 10 }}"
+  >
+</div>
+{{- end -}}

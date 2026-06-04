@@ -20,6 +20,9 @@ site_name = "wunianor"
 description = "个人技术学习与项目记录"
 images = ["/images/og-default.png"]
 clarity_id = "YOUR_CLARITY_ID"
+offlineSearch = true
+offlineSearchMaxResults = 10
+offlineSearchSummaryLength = 100
 
 [params.giscus]
 repo = "YOUR_GISCUS_REPO"
@@ -31,10 +34,6 @@ category_id = "YOUR_GISCUS_CATEGORY_ID"
 taxonomyPageHeader = ["tags"]
 taxonomyCloud = ["tags"]
 taxonomyCloudTitle = ["标签"]
-
-offlineSearch = true
-offlineSearchMaxResults = 10
-offlineSearchSummaryLength = 100
 
 [params.ui]
 navbar_logo = false

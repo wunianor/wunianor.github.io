@@ -1,0 +1,20 @@
+{{- $.Scratch.Add "offline-search-index" slice -}}
+{{- $sections := slice "notes" "projects" "blog" -}}
+{{- range where .Site.RegularPages "Section" "in" $sections -}}
+{{- if ne .Params.exclude_search true -}}
+{{- $.Scratch.Add
+    "offline-search-index"
+    (dict
+        "ref" .RelPermalink
+        "title" .Title
+        "section" .Section
+        "categories" (.Params.categories | default "")
+        "tags" (.Params.tags | default "")
+        "description" (.Description | default "")
+        "body" (.Plain | htmlUnescape)
+        "excerpt" ((.Description | default .Plain) | htmlUnescape | truncate (site.Params.offlinesearchsummarylength | default 70) | htmlUnescape)
+    )
+-}}
+{{- end -}}
+{{- end -}}
+{{- $.Scratch.Get "offline-search-index" | jsonify -}}
