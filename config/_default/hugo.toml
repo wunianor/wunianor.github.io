@@ -4,6 +4,13 @@ languageCode = "zh-cn"
 defaultContentLanguage = "zh"
 enableRobotsTXT = true
 
+[taxonomies]
+tag = "tags"
+
+[outputs]
+home = ["HTML", "RSS"]
+section = ["HTML", "RSS"]
+
 [sitemap]
 changefreq = "weekly"
 priority = 0.5
@@ -14,8 +21,24 @@ description = "个人技术学习与项目记录"
 images = ["/images/og-default.png"]
 clarity_id = "YOUR_CLARITY_ID"
 
+[params.giscus]
+repo = "YOUR_GISCUS_REPO"
+repo_id = "YOUR_GISCUS_REPO_ID"
+category = "YOUR_GISCUS_CATEGORY"
+category_id = "YOUR_GISCUS_CATEGORY_ID"
+
+[params.Taxonomy]
+taxonomyPageHeader = ["tags"]
+taxonomyCloud = ["tags"]
+taxonomyCloudTitle = ["标签"]
+
+offlineSearch = true
+offlineSearchMaxResults = 10
+offlineSearchSummaryLength = 100
+
 [params.ui]
 navbar_logo = false
+footer_about_enable = true
 
 [module]
 proxy = "direct"
