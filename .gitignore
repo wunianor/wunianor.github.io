@@ -1,10 +1,15 @@
 # Hugo
 /public/
+/public-dev/
 /resources/_gen/
 .hugo_build.lock
+/_vendor/
 
 # Node (Docsy PostCSS)
 node_modules/
+
+# Local planning docs (not for repo)
+doc/
 
 # OS
 .DS_Store
