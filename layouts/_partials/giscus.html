@@ -1,0 +1,24 @@
+{{- $g := site.Params.giscus -}}
+{{- if and (eq hugo.Environment "production") $g $g.repo $g.repo_id $g.category $g.category_id -}}
+{{- $sections := slice "notes" "blog" "projects" -}}
+{{- if and (eq .Kind "page") (in $sections .Section) -}}
+<section class="giscus-comments mt-5 pt-4 border-top">
+  <h2 class="h4">评论</h2>
+  <script src="https://giscus.app/client.js"
+    data-repo="{{ $g.repo }}"
+    data-repo-id="{{ $g.repo_id }}"
+    data-category="{{ $g.category }}"
+    data-category-id="{{ $g.category_id }}"
+    data-mapping="pathname"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="bottom"
+    data-theme="preferred_color_scheme"
+    data-lang="zh-CN"
+    crossorigin="anonymous"
+    async>
+  </script>
+</section>
+{{- end -}}
+{{- end -}}
