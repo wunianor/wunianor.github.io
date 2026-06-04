@@ -3,13 +3,16 @@
 /public-dev/
 /resources/_gen/
 .hugo_build.lock
-/_vendor/
+_vendor/
 
 # Node (Docsy PostCSS)
 node_modules/
 
 # Local planning docs (not for repo)
 doc/
+
+# CI-only production overrides (Clarity / Giscus secrets)
+config/production/hugo.toml
 
 # OS
 .DS_Store

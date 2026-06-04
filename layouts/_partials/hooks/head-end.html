@@ -1,27 +1,29 @@
-{{/* Apply stored theme before paint; user choice overrides prefers-color-scheme */ -}}
-<script>
-(function () {
-  var key = 'wunianor-theme';
-  var stored = localStorage.getItem(key);
-  var theme = (stored === 'light' || stored === 'dark') ? stored : 'light';
-  document.documentElement.setAttribute('data-bs-theme', theme);
-})();
-</script>
-{{ $js := resources.Get "js/theme-toggle.js" -}}
-{{ if hugo.IsProduction -}}
-  {{ $js = $js | minify | fingerprint -}}
-  <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" crossorigin="anonymous"></script>
-{{ else -}}
-  <script src="{{ $js.RelPermalink }}"></script>
-{{ end -}}
-{{- if eq hugo.Environment "production" -}}
-{{- with site.Params.clarity_id -}}
-<script type="text/javascript">
-  (function(c,l,a,r,i,t,y){
-    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-  })(window, document, "clarity", "script", "{{ . }}");
-</script>
-{{- end -}}
-{{- end -}}
+{{/* Apply stored theme before paint; user choice overrides prefers-color-scheme */ -}}
+<script>
+(function () {
+  var key = 'wunianor-theme';
+  var stored = localStorage.getItem(key);
+  var theme = (stored === 'light' || stored === 'dark') ? stored : 'light';
+  document.documentElement.setAttribute('data-bs-theme', theme);
+})();
+</script>
+{{ $js := resources.Get "js/theme-toggle.js" -}}
+{{ if hugo.IsProduction -}}
+  {{ $js = $js | minify | fingerprint -}}
+  <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" crossorigin="anonymous"></script>
+{{ else -}}
+  <script src="{{ $js.RelPermalink }}"></script>
+{{ end -}}
+{{- if eq hugo.Environment "production" -}}
+{{- with site.Params.clarity_id -}}
+{{- if ne . "YOUR_CLARITY_ID" -}}
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "{{ . }}");
+</script>
+{{- end -}}
+{{- end -}}
+{{- end -}}

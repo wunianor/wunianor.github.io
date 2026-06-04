@@ -45,8 +45,41 @@ jobs:
           hugo-version: "0.162.1"
           extended: true
 
+      # Merge config/production/hugo.toml over _default (not committed; values from GitHub Secrets).
+      - name: Write production config from secrets
+        env:
+          CLARITY_ID: ${{ secrets.CLARITY_ID }}
+          GISCUS_REPO: ${{ secrets.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ secrets.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ secrets.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ secrets.GISCUS_CATEGORY_ID }}
+        run: |
+          mkdir -p config/production
+          {
+            echo '[params]'
+            if [ -n "$CLARITY_ID" ]; then
+              printf 'clarity_id = %q\n' "$CLARITY_ID"
+            fi
+            echo
+            echo '[params.giscus]'
+            if [ -n "$GISCUS_REPO" ]; then
+              printf 'repo = %q\n' "$GISCUS_REPO"
+            fi
+            if [ -n "$GISCUS_REPO_ID" ]; then
+              printf 'repo_id = %q\n' "$GISCUS_REPO_ID"
+            fi
+            if [ -n "$GISCUS_CATEGORY" ]; then
+              printf 'category = %q\n' "$GISCUS_CATEGORY"
+            fi
+            if [ -n "$GISCUS_CATEGORY_ID" ]; then
+              printf 'category_id = %q\n' "$GISCUS_CATEGORY_ID"
+            fi
+          } > config/production/hugo.toml
+          echo '--- config/production/hugo.toml (keys only) ---'
+          grep -E '^(clarity_id|repo|repo_id|category|category_id) =' config/production/hugo.toml | sed 's/= .*/= ***/' || true
+
       - name: Build site
-        run: hugo --minify
+        run: hugo --minify --environment production
 
       # M13 optional: HTMLProofer dead-link check (enable after first deploy to GitHub Pages)
       # - name: Check links with HTMLProofer
