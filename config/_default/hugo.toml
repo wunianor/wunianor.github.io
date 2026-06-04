@@ -1,1 +1,54 @@
-baseURL = "https://wunianor.github.io/"title = "wunianor"languageCode = "zh-cn"defaultContentLanguage = "zh"[params]site_name = "wunianor"description = "个人技术学习与项目记录"clarity_id = "YOUR_CLARITY_ID"[params.ui]navbar_logo = false[module]proxy = "direct"[module.hugoVersion]extended = truemin = "0.110.0"[[module.imports]]path = "github.com/google/docsy/theme"disable = false[markup.goldmark.renderer]unsafe = true[markup.highlight]style = "pygments"lineNos = truelineNumbersInTable = falsenoClasses = false[markup.tableOfContents]startLevel = 2endLevel = 4[params.notes.categories]cpp = "C++"go = "Go"linux = "Linux"mysql = "MySQL"[params.blog.categories]meta = "站点"[params.projects.names]hugo-site = "个人站点"
+baseURL = "https://wunianor.github.io/"
+title = "wunianor"
+languageCode = "zh-cn"
+defaultContentLanguage = "zh"
+enableRobotsTXT = true
+
+[sitemap]
+changefreq = "weekly"
+priority = 0.5
+
+[params]
+site_name = "wunianor"
+description = "个人技术学习与项目记录"
+images = ["/images/og-default.png"]
+clarity_id = "YOUR_CLARITY_ID"
+
+[params.ui]
+navbar_logo = false
+
+[module]
+proxy = "direct"
+
+[module.hugoVersion]
+extended = true
+min = "0.110.0"
+
+[[module.imports]]
+path = "github.com/google/docsy/theme"
+disable = false
+
+[markup.goldmark.renderer]
+unsafe = true
+
+[markup.highlight]
+style = "pygments"
+lineNos = true
+lineNumbersInTable = false
+noClasses = false
+
+[markup.tableOfContents]
+startLevel = 2
+endLevel = 4
+
+[params.notes.categories]
+cpp = "C++"
+go = "Go"
+linux = "Linux"
+mysql = "MySQL"
+
+[params.blog.categories]
+meta = "站点"
+
+[params.projects.names]
+hugo-site = "个人站点"

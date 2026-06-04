@@ -48,6 +48,14 @@ jobs:
       - name: Build site
         run: hugo --minify
 
+      # M13 optional: HTMLProofer dead-link check (enable after first deploy to GitHub Pages)
+      # - name: Check links with HTMLProofer
+      #   uses: ruby/setup-ruby@v1
+      #   with:
+      #     ruby-version: "3.3"
+      # - run: gem install html-proofer
+      # - run: htmlproofer public --assume-extension --check-external-hash --disable-external
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

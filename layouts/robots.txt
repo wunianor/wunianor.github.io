@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+{{/* Draft pages are excluded at build time; no Disallow needed for /draft/ */ -}}
+Sitemap: {{ absURL "sitemap.xml" }}
