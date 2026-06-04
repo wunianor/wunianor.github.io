@@ -1,0 +1,49 @@
+{{ define "main" }}
+<div class="td-content about-page">
+  <div class="about-page__header">
+    {{ with .Params.avatar }}
+    <img class="about-page__avatar" src="{{ . | relURL }}" alt="{{ $.Title }} 头像" width="160" height="160" loading="lazy">
+    {{ end }}
+    <div class="about-page__intro">
+      <h1>{{ .Title }}</h1>
+      {{ with .Params.description }}<p class="lead">{{ . }}</p>{{ end }}
+    </div>
+  </div>
+  {{ with .Content }}
+  <div class="about-page__body">{{ . }}</div>
+  {{ end }}
+  {{ with .Params.skills }}
+  <section class="about-page__skills" aria-labelledby="about-skills-heading">
+    <h2 id="about-skills-heading">技能</h2>
+    <ul class="about-page__skill-list">
+      {{ range . }}<li>{{ . }}</li>{{ end }}
+    </ul>
+  </section>
+  {{ end }}
+  {{ with .Params.social }}
+  <section class="about-page__contact" aria-labelledby="about-contact-heading">
+    <h2 id="about-contact-heading">联系方式</h2>
+    <ul class="about-page__social-list">
+      {{ range . }}
+      {{ $external := or (hasPrefix .url "http") (hasPrefix .url "mailto:") }}
+      <li>
+        <a class="about-page__social-link"
+           href="{{ if $external }}{{ .url }}{{ else }}{{ .url | relURL }}{{ end }}"
+           {{- if $external }} target="_blank" rel="noopener noreferrer"{{ end -}}>
+          {{ with .icon_class }}<i class="{{ . }}" aria-hidden="true"></i>{{ end }}
+          <span>{{ .name }}</span>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </section>
+  {{ end }}
+  {{ with .Params.resume_url }}
+  <p class="about-page__resume">
+    <a href="{{ . | relURL }}" target="_blank" rel="noopener noreferrer">
+      <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> 查看简历（占位）
+    </a>
+  </p>
+  {{ end }}
+</div>
+{{ end }}
