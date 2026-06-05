@@ -1,9 +1,1 @@
-{{ if site.Params.offlinesearch -}}
-{{ $js := resources.Get "js/offline-search.js" -}}
-{{ if hugo.IsProduction -}}
-  {{ $js = $js | minify | fingerprint -}}
-  <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" crossorigin="anonymous"></script>
-{{ else -}}
-  <script src="{{ $js.RelPermalink }}"></script>
-{{ end -}}
-{{ end -}}
+{{/* offline-search.js is bundled in Docsy main.js when offlinesearch is enabled */ -}}
