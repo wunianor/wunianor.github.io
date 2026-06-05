@@ -13,12 +13,9 @@
     const indexSrc = $searchInput.data('offline-search-index-json-src');
     const baseHref = $searchInput.data('offline-search-base-href') || '/';
 
-    const onQueryChange = (event) => {
+    $searchInputs.on('input', (event) => {
       render($(event.target));
-      $(event.target).blur();
-    };
-
-    $searchInputs.on('input change', onQueryChange);
+    });
 
     $searchInputs.closest('form').on('submit', () => false);
 
@@ -127,11 +124,12 @@
         });
       }
 
-      $targetSearchInput.one('shown.bs.popover', () => {
-        $('.td-offline-search-results__close-button').on('click', () => {
-          $targetSearchInput.val('');
-          $targetSearchInput.trigger('change');
-        });
+      $html.find('.td-offline-search-results__close-button').on('click', () => {
+        const inst = bootstrap.Popover.getInstance($targetSearchInput[0]);
+        if (inst !== null) {
+          inst.dispose();
+        }
+        $targetSearchInput.val('');
       });
 
       const popover = new bootstrap.Popover($targetSearchInput, {
