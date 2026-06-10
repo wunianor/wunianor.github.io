@@ -37,6 +37,21 @@
   }
 }
 
+// Chroma 语法高亮：浅色 / 深色均为 Monokai
+@if $enable-dark-mode {
+  [data-bs-theme='light'] {
+    @import 'chroma/light';
+  }
+
+  [data-bs-theme='dark'] {
+    @import 'chroma/dark';
+
+    .chroma {
+      background-color: var(--td-pre-bg);
+    }
+  }
+}
+
 // Chroma 代码块：深色模式下提升对比度（M7 验收）
 @include color-mode(dark) {
   .highlight {

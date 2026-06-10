@@ -54,7 +54,7 @@ disable = false
 unsafe = true
 
 [markup.highlight]
-style = "pygments"
+style = "monokai"
 lineNos = true
 lineNumbersInTable = false
 noClasses = false
