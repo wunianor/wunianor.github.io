@@ -142,6 +142,22 @@
   }
 }
 
+// Default layout: Docsy pads nested `main` inside `.td-main` for the fixed navbar,
+// but home/about use `main.td-main` directly — restore the same top spacing.
+body.td-home main.td-main,
+body.td-page main.td-main {
+  --td-main-padding-top: 1.5rem;
+  padding-top: var(--td-main-padding-top);
+  padding-bottom: 2rem;
+}
+
+@include media-breakpoint-up(md) {
+  body.td-home main.td-main,
+  body.td-page main.td-main {
+    padding-top: calc(var(--td-main-padding-top) + 4rem);
+  }
+}
+
 // M14 — 移动端体验优化
 html {
   overflow-x: clip;
