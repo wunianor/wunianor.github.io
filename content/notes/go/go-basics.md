@@ -1,5 +1,5 @@
 ---
-title: "Go 语法基础"
+title: "Go 语法基础1"
 date: 2026-06-09
 draft: false
 categories: ["go"]
