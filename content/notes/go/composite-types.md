@@ -1,7 +1,7 @@
 ---
 title: "Go 语法基础2：复合类型"
 date: 2026-06-10
-draft: true
+draft: false
 categories: ["go"]
 tags: ["数组", "slice", "map", "struct"]
 type: "note"
