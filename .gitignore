@@ -17,3 +17,9 @@ config/production/hugo.toml
 # OS
 .DS_Store
 Thumbs.db
+
+# Cursor: ignore by default; track only the youdao-note-migration skill
+.cursor/*
+!.cursor/skills/
+.cursor/skills/*
+!.cursor/skills/youdao-note-migration/

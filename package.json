@@ -1,6 +1,9 @@
 {
   "name": "wunianor.github.io",
   "private": true,
+  "scripts": {
+    "test": "node --test .cursor/skills/youdao-note-migration/youdao-note-migration.test.mjs"
+  },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.6",
