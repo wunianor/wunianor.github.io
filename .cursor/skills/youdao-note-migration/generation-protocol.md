@@ -31,7 +31,7 @@
 在用户确认后，当前仓库的交付分支上只能产生：
 
 - `content/notes/<category-slug>/<topic-slug>/<article-slug>.md`
-- `static/images/notes/<category-slug>/<article-slug>/...`
+- `static/images/notes/<category-slug>/<topic-slug>/<article-slug>/...`
 - 一份符合草稿模板的确认记录（可放在该文章缓存的 `candidates/` 或任务记录目录）。
 
 最终写入前，可在该文章缓存的 `candidates/` 下创建仅供 `validate-draft` 读取的 Markdown 临时候选；它不是最终输出，必须保持不可提交。不得提交 `.tmp`，也不得把 `.tmp` 中的文件作为 Git 变更提交。本地 `git-readiness` 会拦截 `.tmp` 变更。缓存、来源与最终文件的每项对应关系必须写入草稿元数据。
@@ -192,9 +192,9 @@ tags:
 文章图片在正文中必须使用：
 
 ```md
-![<confirmed-alt-text>](/images/notes/<category-slug>/<article-slug>/<filename>)
+![<confirmed-alt-text>](/images/notes/<category-slug>/<topic-slug>/<article-slug>/<filename>)
 ```
 
-相应文件只能位于 `static/images/notes/<category-slug>/<article-slug>/<filename>`。
+相应文件只能位于 `static/images/notes/<category-slug>/<topic-slug>/<article-slug>/<filename>`。
 
-草稿的 `target.categorySlug`、`target.topicSlug` 和 `target.articleSlug` 都是必填 kebab-case slug。`target.markdownPath` 必须严格等于 `content/notes/<category-slug>/<topic-slug>/<article-slug>.md`，`target.imageDir` 必须严格等于 `static/images/notes/<category-slug>/<article-slug>`。图片的 `cachePath` 必须位于该 article 的 `.tmp/content/notes/<category>/<topic>/<article>/images/(original|generated)/` 下，最终路径位于 `static/images/notes/<category>/<article>/`，不接受任意路径或跨文章路径。
+草稿的 `target.categorySlug`、`target.topicSlug` 和 `target.articleSlug` 都是必填 kebab-case slug。`target.markdownPath` 必须严格等于 `content/notes/<category-slug>/<topic-slug>/<article-slug>.md`，`target.imageDir` 必须严格等于 `static/images/notes/<category-slug>/<topic-slug>/<article-slug>`。图片的 `cachePath` 必须位于该 article 的 `.tmp/content/notes/<category>/<topic>/<article>/images/(original|generated)/` 下，最终路径位于 `static/images/notes/<category>/<topic>/<article>/`，不接受任意路径或跨文章路径。

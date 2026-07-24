@@ -239,7 +239,7 @@ test('builds exact cache and final migration paths', () => {
     cacheContentDir: '.tmp/content/notes/linux/io-multiplexing/io-basics',
     cacheImageDir: '.tmp/content/notes/linux/io-multiplexing/io-basics/images',
     contentDir: 'content/notes/linux/io-multiplexing',
-    imageDir: 'static/images/notes/linux/io-basics',
+    imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
   });
 });
 
@@ -280,7 +280,7 @@ test('paths script prints migration paths as formatted JSON', async () => {
         cacheContentDir: '.tmp/content/notes/linux/io-multiplexing/io-basics',
         cacheImageDir: '.tmp/content/notes/linux/io-multiplexing/io-basics/images',
         contentDir: 'content/notes/linux/io-multiplexing',
-        imageDir: 'static/images/notes/linux/io-basics',
+        imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
       },
       null,
       2,
@@ -1546,7 +1546,7 @@ function createApprovedDraft() {
       {
         source: 'https://cdn.example.test/io.png',
         cachePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/images/original/image-001.png',
-        finalPath: 'static/images/notes/linux/io-basics/image-001.png',
+        finalPath: 'static/images/notes/linux/io-multiplexing/io-basics/image-001.png',
         sourceSectionRef: 'source-1',
         decision: 'preserve-original',
         status: 'approved',
@@ -1558,7 +1558,7 @@ function createApprovedDraft() {
       categorySlug: 'linux', topicSlug: 'io-multiplexing',
       articleSlug: 'io-basics',
       markdownPath: 'content/notes/linux/io-multiplexing/io-basics.md',
-      imageDir: 'static/images/notes/linux/io-basics',
+      imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
     },
     approval: {
       status: 'approved',
@@ -1595,7 +1595,7 @@ function createApprovedMarkdown() {
     '#### 1.1.1. Example',
     '### 1.2. Extra',
     '',
-    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+    '![I/O diagram](/images/notes/linux/io-multiplexing/io-basics/image-001.png)',
     '',
     '## 2. Follow-up',
     '### 2.1. Notes',
@@ -1614,10 +1614,10 @@ test('draft validator accepts alternate-expression when expressionForm is record
   const draft = createApprovedDraft();
   draft.images[0].decision = 'alternate-expression';
   draft.images[0].expressionForm = 'table';
-  draft.images[0].finalPath = 'static/images/notes/linux/io-basics/image-001.png';
+  draft.images[0].finalPath = 'static/images/notes/linux/io-multiplexing/io-basics/image-001.png';
   const markdown = createApprovedMarkdown().replace(
-    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
-    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)\n\n| col |\n| --- |\n| val |',
+    '![I/O diagram](/images/notes/linux/io-multiplexing/io-basics/image-001.png)',
+    '![I/O diagram](/images/notes/linux/io-multiplexing/io-basics/image-001.png)\n\n| col |\n| --- |\n| val |',
   );
 
   assert.doesNotThrow(() => validateDraftMetadata(draft, draftValidationOptions));
@@ -1779,7 +1779,7 @@ test('draft metadata requires per-instance formatChanges approvals', () => {
     {
       name: 'rejects legacy static mirror cachePath',
       mutate: (draft) => {
-        draft.images[0].cachePath = '.tmp/static/images/notes/linux/io-basics/image-001.png';
+        draft.images[0].cachePath = '.tmp/static/images/notes/linux/io-multiplexing/io-basics/image-001.png';
       },
       expected: /images\[0\]\.cachePath/,
     },
@@ -1838,7 +1838,7 @@ test('draft metadata requires per-image approvals and alternate-expression form'
         draft.images.push({
           source: 'https://cdn.example.test/io-2.png',
           cachePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/images/original/image-002.png',
-          finalPath: 'static/images/notes/linux/io-basics/image-002.png',
+          finalPath: 'static/images/notes/linux/io-multiplexing/io-basics/image-002.png',
           sourceSectionRef: 'source-1',
           decision: 'preserve-original',
           status: 'approved',
@@ -1993,7 +1993,7 @@ test('draft output requires confirmed front matter and forbids HTML images', () 
     },
     {
       name: 'HTML image',
-      markdown: () => `${createApprovedMarkdown()}\n<img src="/images/notes/linux/io-basics/image-001.png">`,
+      markdown: () => `${createApprovedMarkdown()}\n<img src="/images/notes/linux/io-multiplexing/io-basics/image-001.png">`,
       expected: /HTML.*img/i,
     },
   ];
@@ -2068,7 +2068,7 @@ function markdownWithFrontMatter(body, { allowSoleTopLevelHeading = false } = {}
     '',
     normalizedBody,
     '',
-    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+    '![I/O diagram](/images/notes/linux/io-multiplexing/io-basics/image-001.png)',
   ].join('\n');
 }
 
@@ -2570,7 +2570,7 @@ test('validate-draft reports a safe JSON summary without writing output files', 
       markdown: 'article.md',
       target: {
         markdownPath: 'content/notes/linux/io-multiplexing/io-basics.md',
-        imageDir: 'static/images/notes/linux/io-basics',
+        imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
       },
       counts: {
         sourceSections: 1,
@@ -2652,9 +2652,12 @@ function createQualityGateRoot() {
     path.join(temporaryRoot, 'content', 'notes', 'linux', 'io-multiplexing', 'io-basics.md'),
     markdown,
   );
-  mkdirSync(path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-basics'), {
-    recursive: true,
-  });
+  mkdirSync(
+    path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-multiplexing', 'io-basics'),
+    {
+      recursive: true,
+    },
+  );
   writeFileSync(
     path.join(
       temporaryRoot,
@@ -2662,6 +2665,7 @@ function createQualityGateRoot() {
       'images',
       'notes',
       'linux',
+      'io-multiplexing',
       'io-basics',
       'image-001.png',
     ),
@@ -2734,7 +2738,7 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       valid: true,
       command: 'check-note',
       markdown: 'content/notes/linux/io-multiplexing/io-basics.md',
-      imageDir: 'static/images/notes/linux/io-basics',
+      imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
       images: 1,
     });
     assert.equal(
@@ -2792,6 +2796,7 @@ test('check-note validates final paths, approved image assets, and safe Markdown
         'images',
         'notes',
         'linux',
+        'io-multiplexing',
         'io-basics',
         'unapproved.png',
       ),
@@ -2820,6 +2825,7 @@ test('check-note validates final paths, approved image assets, and safe Markdown
         'images',
         'notes',
         'linux',
+        'io-multiplexing',
         'io-basics',
         'unapproved.png',
       ),
@@ -2831,6 +2837,7 @@ test('check-note validates final paths, approved image assets, and safe Markdown
         'images',
         'notes',
         'linux',
+        'io-multiplexing',
         'io-basics',
         'image-001.png',
       ),
@@ -2859,6 +2866,7 @@ test('check-note validates final paths, approved image assets, and safe Markdown
         'images',
         'notes',
         'linux',
+        'io-multiplexing',
         'io-basics',
         'image-001.png',
       ),
@@ -2890,7 +2898,7 @@ test('check-note permits an absent image directory for an approved zero-image dr
     const draft = createApprovedDraft();
     draft.images = [];
     const markdown = createApprovedMarkdown().replace(
-      '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+      '![I/O diagram](/images/notes/linux/io-multiplexing/io-basics/image-001.png)',
       '',
     );
     writeFileSync(path.join(temporaryRoot, 'draft.json'), JSON.stringify(draft));
@@ -2899,7 +2907,7 @@ test('check-note permits an absent image directory for an approved zero-image dr
       path.join(temporaryRoot, 'content', 'notes', 'linux', 'io-multiplexing', 'io-basics.md'),
       markdown,
     );
-    rmSync(path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-basics'), {
+    rmSync(path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-multiplexing', 'io-basics'), {
       force: true,
       recursive: true,
     });
@@ -2928,7 +2936,7 @@ test('check-note permits an absent image directory for an approved zero-image dr
       valid: true,
       command: 'check-note',
       markdown: 'content/notes/linux/io-multiplexing/io-basics.md',
-      imageDir: 'static/images/notes/linux/io-basics',
+      imageDir: 'static/images/notes/linux/io-multiplexing/io-basics',
       images: 0,
     });
   } finally {
@@ -2939,7 +2947,7 @@ test('check-note permits an absent image directory for an approved zero-image dr
 test('check-note requires the image directory when the approved inventory is non-empty', async () => {
   const temporaryRoot = createQualityGateRoot();
   try {
-    rmSync(path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-basics'), {
+    rmSync(path.join(temporaryRoot, 'static', 'images', 'notes', 'linux', 'io-multiplexing', 'io-basics'), {
       force: true,
       recursive: true,
     });
@@ -3004,7 +3012,7 @@ test('check-site invokes Hugo with fixed safe arguments and reports runner failu
   );
 });
 
-test('git-readiness permits only explicit article assets and explicit extra allow-list paths', async () => {
+test('git-readiness permits article assets, ignores root-outside paths, and rejects root-inside extras', async () => {
   const calls = [];
   const runProcess = async (command, argumentsList, options) => {
     calls.push({ command, argumentsList, options });
@@ -3018,7 +3026,7 @@ test('git-readiness permits only explicit article assets and explicit extra allo
       exitCode: 0,
       stdout: [
         ' M content/notes/linux/io-multiplexing/io-basics.md',
-        '?? static/images/notes/linux/io-basics/image-001.png',
+        '?? static/images/notes/linux/io-multiplexing/io-basics/image-001.png',
         ` M ${RULES_REPO_PATH}`,
       ].join('\n'),
       stderr: '',
@@ -3031,8 +3039,6 @@ test('git-readiness permits only explicit article assets and explicit extra allo
       'io-multiplexing',
       '--article',
       'io-basics',
-      '--allow',
-      RULES_REPO_PATH,
     ],
     {
       repoRoot,
@@ -3070,7 +3076,7 @@ test('git-readiness permits only explicit article assets and explicit extra allo
     branch: 'docs/linux_io-multiplexing_io-basics',
     changedPaths: [
       'content/notes/linux/io-multiplexing/io-basics.md',
-      'static/images/notes/linux/io-basics/image-001.png',
+      'static/images/notes/linux/io-multiplexing/io-basics/image-001.png',
       RULES_REPO_PATH,
     ],
   });
@@ -3127,6 +3133,61 @@ test('git-readiness permits only explicit article assets and explicit extra allo
     ),
     /unexpected changed paths.*\.tmp/i,
   );
+  await assert.rejects(
+    gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+      repoRoot,
+      dependencies: {
+        runProcess: async (_command, argumentsList) =>
+          argumentsList[0] === 'branch'
+            ? { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' }
+            : {
+              exitCode: 0,
+              stdout: [
+                ' M content/notes/linux/io-multiplexing/io-basics.md',
+                '?? content/notes/linux/io-multiplexing/_index.md',
+              ].join('\n'),
+              stderr: '',
+            },
+      },
+    }),
+    /unexpected changed paths.*_index\.md/i,
+  );
+  let allowOutput = '';
+  await gitReadinessMain(
+    [
+      '--category', 'linux', '--topic',
+      'io-multiplexing',
+      '--article',
+      'io-basics',
+      '--allow',
+      'content/notes/linux/io-multiplexing/_index.md',
+    ],
+    {
+      repoRoot,
+      dependencies: {
+        runProcess: async (_command, argumentsList) =>
+          argumentsList[0] === 'branch'
+            ? { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' }
+            : argumentsList[0] === 'diff'
+              ? { exitCode: 0, stdout: '', stderr: '' }
+              : {
+                exitCode: 0,
+                stdout: [
+                  ' M content/notes/linux/io-multiplexing/io-basics.md',
+                  '?? content/notes/linux/io-multiplexing/_index.md',
+                ].join('\n'),
+                stderr: '',
+              },
+      },
+      write: (value) => {
+        allowOutput += value;
+      },
+    },
+  );
+  assert.deepEqual(JSON.parse(allowOutput).changedPaths, [
+    'content/notes/linux/io-multiplexing/io-basics.md',
+    'content/notes/linux/io-multiplexing/_index.md',
+  ]);
 });
 
 test('git-readiness runs both diff checks before rejecting unexpected paths', async () => {
@@ -3376,7 +3437,7 @@ test('strict-fidelity protocol gates non-mechanical edits and defines Hugo outpu
   assert.match(protocol, /代码围栏|行内代码|URL/);
   assert.match(protocol, /代码围栏伪注释|code-fence-comments/);
   assert.match(protocol, /作用:|参数:/);
-  assert.match(protocol, /\/images\/notes\/<category-slug>\/<article-slug>\//);
+  assert.match(protocol, /\/images\/notes\/<category-slug>\/<topic-slug>\/<article-slug>\//);
   assert.match(protocol, /不得提交 `\.tmp`/);
   assert.doesNotMatch(protocol, /私有 CLI/);
   assert.doesNotMatch(protocol, /API[ -]?[Kk]ey/);
@@ -3392,6 +3453,7 @@ test('strict-fidelity protocol gates non-mechanical edits and defines Hugo outpu
   assert.match(skill, /git-readiness/);
   assert.match(skill, /validate-draft.*check-note.*check-site.*git-readiness|依次运行 `validate-draft`/);
   assert.match(skill, /路径变更/);
+  assert.match(skill, /contentRoot.*imageRoot|只审查.*contentRoot/);
   assert.match(skill, /忽略的.*根目录.*\.tmp.*保留/);
   assert.match(skill, /Git.*报告.*\.tmp.*变更.*阻止/);
   assert.match(skill, /用户明确确认.*git add.*git commit/);
@@ -3424,7 +3486,7 @@ test('requires a category and uses generic project-scoped migration paths', () =
       cacheContentDir: '.tmp/content/notes/go/concurrency/select',
       cacheImageDir: '.tmp/content/notes/go/concurrency/select/images',
       contentDir: 'content/notes/go/concurrency',
-      imageDir: 'static/images/notes/go/select',
+      imageDir: 'static/images/notes/go/concurrency/select',
     },
   );
 });

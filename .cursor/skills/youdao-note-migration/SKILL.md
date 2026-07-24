@@ -53,7 +53,7 @@ description: "该技能指导助手将有道笔记的一个或多个章节迁移
    node .cursor/skills/youdao-note-migration/scripts/git-readiness.mjs --category <category-slug> --topic <topic-slug> --article <article-slug>
    ```
 
-   `check-note` 只接受仓库内输入；最终 Markdown 必须逐字节匹配 `--approved-markdown` 候选，并验证最终图片目录清单、已批准图片本地文件、`.tmp`/远程链接和 HTML 图片标签。`preserve-original` 图片还必须与缓存 `provenance.json` 的 SHA256 和原始缓存文件一致。`check-site` 只以固定参数执行生产 Hugo 构建。`git-readiness` 只允许该文章 Markdown、该文章图片目录和通过重复 `--allow <relative-path>` 列出的额外路径；忽略的根目录 `.tmp` 可保留，但绝不能作为允许提交的路径。若 Git 报告任何 `.tmp` 变更，须在返回路径错误前运行未暂存和已暂存的 `git diff --check`，随后阻止就绪。
+   `check-note` 只接受仓库内输入；最终 Markdown 必须逐字节匹配 `--approved-markdown` 候选，并验证最终图片目录清单、已批准图片本地文件、`.tmp`/远程链接和 HTML 图片标签。`preserve-original` 图片还必须与缓存 `provenance.json` 的 SHA256 和原始缓存文件一致。`check-site` 只以固定参数执行生产 Hugo 构建。`git-readiness` 只审查 `contentRoot`/`imageRoot` 内的变更（根外路径一律忽略）；根内只允许该文章 Markdown、该文章图片目录和通过重复 `--allow <relative-path>` 列出的额外路径；忽略的根目录 `.tmp` 可保留，但绝不能作为允许提交的路径。若 Git 报告任何 `.tmp` 变更，须在返回路径错误前运行未暂存和已暂存的 `git diff --check`，随后阻止就绪。
 3. 向用户列出 `git-readiness` 报告的全部路径变更、AI 审查结论和每个门禁的 JSON 摘要。门禁不能证明来源语义等价，AI 审查仍是必需步骤。
 4. 只有用户明确确认后，才可 `git add` / `git commit`；未指定提交信息时使用 `docs: 新增 <标题> 学习笔记`。不得自动提交。
 5. 只有用户明确要求时，才可 push 或创建 PR；不得自动 push、创建 PR 或请求合并。

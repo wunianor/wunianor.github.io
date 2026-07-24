@@ -114,6 +114,17 @@ function parseChangedEntries(statusOutput) {
 }
 
 /**
+ * @brief 判断变更路径是否落在给定相对根目录之下（或等于该根）。
+ * @param {string} changedPath - 变更的相对路径（POSIX `/`）。
+ * @param {string} root - 相对根目录（如 `content/notes`）。
+ * @returns {boolean} 路径等于根或位于根下为 `true`。
+ */
+function pathIsUnderRoot(changedPath, root) {
+  const normalizedRoot = root.replaceAll('\\', '/').replace(/\/+$/, '');
+  return changedPath === normalizedRoot || changedPath.startsWith(`${normalizedRoot}/`);
+}
+
+/**
  * @brief 判断 Git 变更路径是否在文章交付白名单内。
  * @param {string} changedPath - 变更的相对路径。
  * @param {string} markdownPath - 文章 Markdown 相对路径。
@@ -185,7 +196,8 @@ function untrackedMarkdownWhitespaceError(repoRoot, changedPath) {
  * @param {Set<string>} options.explicitAllowPaths - 额外允许路径。
  * @param {typeof runProcess} [options.run] - 可注入的 Git/Hugo 运行器。
  * @returns {Promise<{ valid: true, command: 'git-readiness', branch: string, changedPaths: string[] }>}
- * @note 须在 `docs/<category>_<topic>_<article>` 分支；`.tmp` 变更一律拒绝；先跑 `diff --check` 再报路径错误。
+ * @note 须在 `docs/<category>_<topic>_<article>` 分支；仅审查 `contentRoot`/`imageRoot` 内变更（根外忽略）；
+ *       根内仍只允许本文 Markdown、本文 `imageDir/` 与 `--allow`；`.tmp` 变更一律拒绝；先跑 `diff --check` 再报路径错误。
  */
 export async function checkGitReadiness({
   repoRoot,
@@ -205,7 +217,8 @@ export async function checkGitReadiness({
   }
   requireSuccessfulResult(branchResult, 'Git branch check');
   const branch = branchResult.stdout.trim();
-  const expectedBranch = buildDeliveryBranchName(loadRules(repoRoot), {
+  const rules = loadRules(repoRoot);
+  const expectedBranch = buildDeliveryBranchName(rules, {
     categorySlug,
     topicSlug,
     articleSlug,
@@ -225,14 +238,20 @@ export async function checkGitReadiness({
   requireSuccessfulResult(statusResult, 'Git status check');
   const changedEntries = parseChangedEntries(statusResult.stdout);
   const changedPaths = changedEntries.map((entry) => entry.changedPath);
+  const { contentRoot, imageRoot } = rules;
   const unexpectedPaths = changedEntries
     .map((entry) => entry.changedPath)
-    .filter(
-      (changedPath) =>
-        changedPath === '.tmp'
-        || changedPath.startsWith('.tmp/')
-        || !pathIsAllowed(changedPath, markdownPath, imageDir, explicitAllowPaths),
-    );
+    .filter((changedPath) => {
+      if (changedPath === '.tmp' || changedPath.startsWith('.tmp/')) {
+        return true;
+      }
+      const inDeliveryRoots =
+        pathIsUnderRoot(changedPath, contentRoot) || pathIsUnderRoot(changedPath, imageRoot);
+      if (!inDeliveryRoots) {
+        return false;
+      }
+      return !pathIsAllowed(changedPath, markdownPath, imageDir, explicitAllowPaths);
+    });
 
   let diffResult;
   try {
@@ -256,6 +275,11 @@ export async function checkGitReadiness({
 
   for (const { status, changedPath } of changedEntries) {
     if (status !== '??' || !changedPath.endsWith('.md')) {
+      continue;
+    }
+    const inDeliveryRoots =
+      pathIsUnderRoot(changedPath, contentRoot) || pathIsUnderRoot(changedPath, imageRoot);
+    if (!inDeliveryRoots) {
       continue;
     }
     const whitespaceError = untrackedMarkdownWhitespaceError(repoRoot, changedPath);

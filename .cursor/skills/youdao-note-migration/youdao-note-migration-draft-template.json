@@ -239,7 +239,7 @@
           },
           "finalPath": {
             "type": "string",
-            "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[^/\\\\]+$"
+            "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[^/\\\\]+$"
           },
           "sourceSectionRef": {
             "type": "string",
@@ -332,7 +332,7 @@
         },
         "imageDir": {
           "type": "string",
-          "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$"
         }
       }
     },

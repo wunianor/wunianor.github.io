@@ -358,7 +358,8 @@ function validateTarget(
 
   const expectedMarkdownPath =
     `${contentRoot}/${target.categorySlug}/${target.topicSlug}/${target.articleSlug}.md`;
-  const expectedImageDir = `${imageRoot}/${target.categorySlug}/${target.articleSlug}`;
+  const expectedImageDir =
+    `${imageRoot}/${target.categorySlug}/${target.topicSlug}/${target.articleSlug}`;
   if (target.markdownPath !== expectedMarkdownPath) {
     fail('target.markdownPath', `must equal "${expectedMarkdownPath}"`);
   }

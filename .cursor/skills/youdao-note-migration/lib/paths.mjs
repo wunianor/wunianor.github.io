@@ -131,7 +131,7 @@ function buildPosixPath(...segments) {
  * @param {object} rules - `loadRules` 返回的规则对象。
  * @param {{ categorySlug: string, topicSlug: string, articleSlug: string }} slugs - 三类 slug。
  * @returns {{ cacheRoot: string, cacheContentDir: string, cacheImageDir: string, contentDir: string, imageDir: string }}
- * @note `categorySlug` 必填；图片目录不含 `topic` 段；slug 非法时抛 `Error`。
+ * @note `categorySlug` 必填；最终图片目录为 `imageRoot/<category>/<topic>/<article>`；slug 非法时抛 `Error`。
  */
 export function buildMigrationPaths(rules, { categorySlug, topicSlug, articleSlug }) {
   validateSlug('categorySlug', categorySlug);
@@ -151,7 +151,7 @@ export function buildMigrationPaths(rules, { categorySlug, topicSlug, articleSlu
     cacheContentDir,
     cacheImageDir: buildPosixPath(cacheContentDir, 'images'),
     contentDir: buildPosixPath(rules.contentRoot, categorySlug, topicSlug),
-    imageDir: buildPosixPath(rules.imageRoot, categorySlug, articleSlug),
+    imageDir: buildPosixPath(rules.imageRoot, categorySlug, topicSlug, articleSlug),
   };
 }
 
