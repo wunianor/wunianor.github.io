@@ -7,6 +7,7 @@
   "required": [
     "sourceSections",
     "outputSections",
+    "formatChanges",
     "contentChanges",
     "images",
     "target",
@@ -89,6 +90,57 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "formatChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "location",
+          "sourceExcerpt",
+          "reason",
+          "status",
+          "approvalId"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "heading-structure",
+              "emphasis-syntax",
+              "chinese-punctuation",
+              "code-fence-comments",
+              "other-format"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceExcerpt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "blocked"
+            ]
+          },
+          "approvalId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
           }
         }
       }
@@ -182,7 +234,8 @@
             "type": "string"
           },
           "cachePath": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^\\.tmp/content/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/images/(original|generated)/[^/\\\\]+$"
           },
           "finalPath": {
             "type": "string",
@@ -198,6 +251,7 @@
               "preserve-original",
               "markdown-transcription",
               "redraw-candidate",
+              "alternate-expression",
               "blocked"
             ]
           },
@@ -213,8 +267,38 @@
           "approvalId": {
             "type": "string",
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          },
+          "expressionForm": {
+            "type": "string",
+            "minLength": 1
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "decision": {
+                  "const": "alternate-expression"
+                }
+              },
+              "required": [
+                "decision"
+              ]
+            },
+            "then": {
+              "required": [
+                "expressionForm"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "expressionForm"
+                ]
+              }
+            }
+          }
+        ]
       }
     },
     "target": {

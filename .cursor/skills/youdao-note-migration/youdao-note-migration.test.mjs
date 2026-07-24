@@ -28,34 +28,42 @@ import {
 } from './lib/paths.mjs';
 import {
   extractImages,
-  parseSearchCandidates,
 } from './lib/images.mjs';
-import { isGloballyRoutableAddress } from './lib/network.mjs';
+import { createPinnedLookup, isGloballyRoutableAddress } from './lib/network.mjs';
 import {
   acquireCacheLock,
   cacheNote,
   cachePublicShare,
 } from './lib/cache.mjs';
 import {
-  parseReadResponse,
-  preflightYoudao,
-  readYoudaoNote,
-} from './lib/youdao.mjs';
-import {
   assertShareId,
   parsePublicShareResponse,
   readPublicShare,
+  resolveShareInput,
 } from './lib/public-share.mjs';
-import { runCli } from './lib/cli.mjs';
 import {
   validateDraftMetadata,
   validateDraftOutput,
 } from './lib/draft-validator.mjs';
+import { main as cacheShareMain } from './scripts/cache-share.mjs';
+import { main as checkNoteMain } from './scripts/check-note.mjs';
+import { main as checkSiteMain } from './scripts/check-site.mjs';
+import { main as gitReadinessMain } from './scripts/git-readiness.mjs';
+import { main as shareInfoMain } from './scripts/share-info.mjs';
+import { main as validateDraftMain } from './scripts/validate-draft.mjs';
 
 const execFileAsync = promisify(execFile);
 const skillRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(skillRoot, '../../..');
-const CLI_SCRIPT = path.join('.cursor', 'skills', 'youdao-note-migration', 'youdao-note-migration.mjs');
+const SCRIPT_PATHS = {
+  paths: path.join(skillRoot, 'scripts', 'paths.mjs'),
+  'share-info': path.join(skillRoot, 'scripts', 'share-info.mjs'),
+  'cache-share': path.join(skillRoot, 'scripts', 'cache-share.mjs'),
+  'validate-draft': path.join(skillRoot, 'scripts', 'validate-draft.mjs'),
+  'check-note': path.join(skillRoot, 'scripts', 'check-note.mjs'),
+  'check-site': path.join(skillRoot, 'scripts', 'check-site.mjs'),
+  'git-readiness': path.join(skillRoot, 'scripts', 'git-readiness.mjs'),
+};
 const RULES_REPO_PATH = path.posix.join(...SKILL_DIR_SEGMENTS, RULES_FILENAME);
 const DRAFT_TEMPLATE_PATH = path.join(skillRoot, 'youdao-note-migration-draft-template.json');
 const defaultRules = {
@@ -63,7 +71,7 @@ const defaultRules = {
   cacheRoot: '.tmp',
   contentRoot: 'content/notes',
   imageRoot: 'static/images/notes',
-  branchTemplate: 'docs/{category}-{slug}',
+  branchTemplate: 'docs/{category}_{topic}_{article}',
   commitTemplate: 'docs: 新增 {title} 学习笔记',
   approvalUserId: 'wunianor',
 };
@@ -119,6 +127,36 @@ test('rejects configured IPv6 special-use ranges while allowing global unicast a
   for (const address of ['2001:4860:4860::8888', '2606:4700:4700::1111', '3fff:1000::1']) {
     assert.equal(isGloballyRoutableAddress(address), true, address);
   }
+});
+
+test('createPinnedLookup supports Node all:true and legacy lookup callbacks', () => {
+  const lookup = createPinnedLookup('8.8.8.8');
+
+  lookup('note.youdao.com', { all: true }, (error, results) => {
+    assert.equal(error, null);
+    assert.deepEqual(results, [{ address: '8.8.8.8', family: 4 }]);
+  });
+
+  lookup('note.youdao.com', {}, (error, address, family) => {
+    assert.equal(error, null);
+    assert.equal(address, '8.8.8.8');
+    assert.equal(family, 4);
+  });
+
+  lookup('note.youdao.com', (error, address, family) => {
+    assert.equal(error, null);
+    assert.equal(address, '8.8.8.8');
+    assert.equal(family, 4);
+  });
+
+  const ipv6Lookup = createPinnedLookup('2001:4860:4860::8888');
+  ipv6Lookup('note.youdao.com', { all: true }, (error, results) => {
+    assert.equal(error, null);
+    assert.deepEqual(results, [{ address: '2001:4860:4860::8888', family: 6 }]);
+  });
+
+  assert.throws(() => createPinnedLookup('not-an-ip'), /valid IP/i);
+  assert.throws(() => createPinnedLookup(''), /non-empty/i);
 });
 
 function writeRulesFixture(temporaryRoot, overrides = {}) {
@@ -199,7 +237,7 @@ test('builds exact cache and final migration paths', () => {
   assert.deepEqual(paths, {
     cacheRoot: '.tmp',
     cacheContentDir: '.tmp/content/notes/linux/io-multiplexing/io-basics',
-    cacheImageDir: '.tmp/static/images/notes/linux/io-basics',
+    cacheImageDir: '.tmp/content/notes/linux/io-multiplexing/io-basics/images',
     contentDir: 'content/notes/linux/io-multiplexing',
     imageDir: 'static/images/notes/linux/io-basics',
   });
@@ -220,12 +258,11 @@ test('rejects traversal in migration slugs', () => {
   );
 });
 
-test('CLI prints migration paths as formatted JSON', async () => {
+test('paths script prints migration paths as formatted JSON', async () => {
   const { stdout, stderr } = await execFileAsync(
     process.execPath,
     [
-      CLI_SCRIPT,
-      'paths',
+      SCRIPT_PATHS.paths,
       '--category', 'linux', '--topic',
       'io-multiplexing',
       '--article',
@@ -241,7 +278,7 @@ test('CLI prints migration paths as formatted JSON', async () => {
       {
         cacheRoot: '.tmp',
         cacheContentDir: '.tmp/content/notes/linux/io-multiplexing/io-basics',
-        cacheImageDir: '.tmp/static/images/notes/linux/io-basics',
+        cacheImageDir: '.tmp/content/notes/linux/io-multiplexing/io-basics/images',
         contentDir: 'content/notes/linux/io-multiplexing',
         imageDir: 'static/images/notes/linux/io-basics',
       },
@@ -251,138 +288,22 @@ test('CLI prints migration paths as formatted JSON', async () => {
   );
 });
 
-test('CLI exits nonzero for an unknown command', async () => {
+test('validate-draft rejects unknown positional arguments', async () => {
   await assert.rejects(
-    execFileAsync(process.execPath, [CLI_SCRIPT, 'unknown'], {
-      cwd: repoRoot,
-    }),
-    (error) => error.code !== 0 && /Unknown command: unknown/.test(error.stderr),
-  );
-});
-
-test('parses file candidates from youdaonote search output', () => {
-  assert.deepEqual(
-    parseSearchCandidates(
+    execFileAsync(
+      process.execPath,
       [
-        '📁 folder-1\tLinux',
-        '📄 file-1\tI/O 多路复用',
-        'not a result line',
-        '📄 \tMissing id',
-        '📄 file-2\t中文标题',
-      ].join('\n'),
+        SCRIPT_PATHS['validate-draft'],
+        'unknown',
+        '--draft',
+        'draft.json',
+        '--markdown',
+        'article.md',
+      ],
+      { cwd: repoRoot },
     ),
-    [
-      { id: 'file-1', title: 'I/O 多路复用' },
-      { id: 'file-2', title: '中文标题' },
-    ],
+    (error) => error.code !== 0 && /Usage: validate-draft/.test(error.stderr),
   );
-});
-
-test('reads JSON content and rejects incomplete responses', async () => {
-  const execute = async () => ({ stdout: '{"content":"# Linux"}', stderr: '' });
-  const note = await readYoudaoNote('note-1', { execute });
-
-  assert.deepEqual(note, {
-    rawJson: '{"content":"# Linux"}',
-    content: '# Linux',
-  });
-  assert.throws(() => parseReadResponse('{"title":"Linux"}'), /content/i);
-});
-
-test('reads nonempty transformed plaintext and rejects only clearly object-JSON malformed output', async () => {
-  const rawText = '25.1. IO 概念\n转换后的正文';
-  const execute = async () => ({ stdout: rawText, stderr: '' });
-
-  assert.deepEqual(await readYoudaoNote('note-1', { execute }), {
-    rawText,
-    content: rawText,
-    sourceFormat: 'plain-text',
-    isRaw: false,
-  });
-  assert.throws(() => parseReadResponse('{"content":'), /malformed JSON/i);
-  for (const plainText of ['[intro](https://example.test)', '[not valid JSON]', '{not an object JSON}']) {
-    assert.deepEqual(parseReadResponse(plainText), {
-      rawText: plainText,
-      content: plainText,
-      sourceFormat: 'plain-text',
-      isRaw: false,
-    });
-  }
-  assert.throws(() => parseReadResponse(' \n\t '), /nonempty plaintext/i);
-});
-
-test('redacts credentials while preserving youdaonote failure context', async () => {
-  const secret = 'sk-test-credential-should-never-appear';
-
-  await assert.rejects(
-    readYoudaoNote('note-1', {
-      execute: async () => {
-        const error = new Error(`Authorization: Bearer ${secret}`);
-        error.code = 23;
-        error.stderr = `apiKey=${secret}\ntoken=${secret}\nAuthorization: Bearer ${secret}`;
-        throw error;
-      },
-    }),
-    (error) =>
-      !error.message.includes(secret) &&
-      /youdaonote -s ydn read note-1 failed/.test(error.message) &&
-      /exit code 23/.test(error.message),
-  );
-});
-
-test('redacts JSON and quoted credential values in youdaonote errors', async () => {
-  const secrets = [
-    'json-token-must-not-leak',
-    'json-api-key-must-not-leak',
-    'json-password-must-not-leak',
-    'json-secret-must-not-leak',
-  ];
-
-  await assert.rejects(
-    readYoudaoNote('note-1', {
-      execute: async () => {
-        const error = new Error('youdaonote failed');
-        error.code = 9;
-        error.stderr = JSON.stringify({
-          token: secrets[0],
-          apiKey: secrets[1],
-          password: secrets[2],
-          secret: secrets[3],
-          Authorization: `Bearer ${secrets[0]}`,
-        });
-        throw error;
-      },
-    }),
-    (error) =>
-      secrets.every((secret) => !error.message.includes(secret)) &&
-      /youdaonote -s ydn read note-1 failed/.test(error.message) &&
-      /exit code 9/.test(error.message),
-  );
-});
-
-test('runs read-only preflight commands in required order', async () => {
-  const calls = [];
-  const output = await preflightYoudao({
-    execute: async (argumentsList) => {
-      calls.push(argumentsList);
-      if (argumentsList[0] === 'version') {
-        return { stdout: 'youdaonote 1.0.0\n', stderr: '' };
-      }
-
-      if (argumentsList[0] === 'check') {
-        return { stdout: '{"ok":true,"token":"do-not-print"}', stderr: '' };
-      }
-
-      return { stdout: '/Linux\n', stderr: '' };
-    },
-  });
-
-  assert.deepEqual(calls, [['list'], ['version'], ['check', '--json']]);
-  assert.deepEqual(output, {
-    version: 'youdaonote 1.0.0',
-    healthCheck: { ok: true },
-    rootsListed: true,
-  });
 });
 
 test('extracts deduplicated HTTP Markdown and HTML images in source order', () => {
@@ -616,7 +537,7 @@ async function withHttpServer(handler, verify) {
   }
 }
 
-test('caches source files, downloaded images, mirror, and provenance', async () => {
+test('caches source files, downloaded images, and provenance without a static mirror', async () => {
   const temporaryRoot = mkdtempSync(path.join(os.tmpdir(), 'linux-note-cache-'));
   const imageBytes = Buffer.from('image fixture');
 
@@ -656,18 +577,12 @@ test('caches source files, downloaded images, mirror, and provenance', async () 
         'io-basics',
       );
       const originalImage = path.join(cacheDirectory, 'images', 'original', 'image-001.png');
-      const mirroredImage = path.join(
-        temporaryRoot,
-        '.tmp',
-        'static',
-        'images',
-        'notes',
-        'linux',
-        'io-basics',
-        'image-001.png',
-      );
+      const staticMirrorRoot = path.join(temporaryRoot, '.tmp', 'static');
       const provenance = JSON.parse(
         readFileSync(path.join(cacheDirectory, 'reports', 'provenance.json'), 'utf8'),
+      );
+      const manifest = JSON.parse(
+        readFileSync(path.join(cacheDirectory, 'reports', 'cache-manifest.json'), 'utf8'),
       );
 
       assert.equal(result.cacheDirectory, '.tmp/content/notes/linux/io-multiplexing/io-basics');
@@ -681,7 +596,9 @@ test('caches source files, downloaded images, mirror, and provenance', async () 
         `![图](${sourceUrl})`,
       );
       assert.deepEqual(readFileSync(originalImage), imageBytes);
-      assert.deepEqual(readFileSync(mirroredImage), imageBytes);
+      assert.equal(existsSync(staticMirrorRoot), false);
+      assert.equal(manifest.imageDir, '.tmp/content/notes/linux/io-multiplexing/io-basics/images');
+      assert.equal(manifest.mirrorPath, undefined);
       assert.equal(provenance.source.id, 'note-1');
       assert.equal(provenance.source.sourceFormat, 'json-content');
       assert.equal(provenance.source.isRaw, true);
@@ -692,77 +609,6 @@ test('caches source files, downloaded images, mirror, and provenance', async () 
   } finally {
     rmSync(temporaryRoot, { force: true, recursive: true });
   }
-});
-
-test('caches transformed plaintext without extracting or downloading embedded image syntax', async () => {
-  await withTemporaryCache(async (temporaryRoot) => {
-    const rawText = '25.1. IO 概念\n![converted image](https://cdn.example.test/diagram.png)';
-    let imageRequestAttempted = false;
-    const result = await cacheNote({
-      repoRoot: temporaryRoot,
-      rules: defaultRules,
-      categorySlug: 'linux', topicSlug: 'io-multiplexing',
-      articleSlug: 'io-basics',
-      note: {
-        id: 'note-1',
-        rawText,
-        content: rawText,
-        sourceFormat: 'plain-text',
-        isRaw: false,
-      },
-      fetchImpl: async () => {
-        imageRequestAttempted = true;
-        throw new Error('plain text cache must not request images');
-      },
-    });
-    const cacheDirectory = path.join(
-      temporaryRoot,
-      '.tmp',
-      'content',
-      'notes',
-      'linux',
-      'io-multiplexing',
-      'io-basics',
-    );
-    const provenance = JSON.parse(
-      readFileSync(path.join(cacheDirectory, 'reports', 'provenance.json'), 'utf8'),
-    );
-
-    assert.equal(result.imageCount, 0);
-    assert.equal(imageRequestAttempted, false);
-    assert.equal(readFileSync(path.join(cacheDirectory, 'source', 'note.txt'), 'utf8'), rawText);
-    assert.equal(readFileSync(path.join(cacheDirectory, 'source', 'content.md'), 'utf8'), rawText);
-    assert.equal(existsSync(path.join(cacheDirectory, 'source', 'note.json')), false);
-    assert.deepEqual(provenance.source, {
-      id: 'note-1',
-      sourceFormat: 'plain-text',
-      isRaw: false,
-      fetchedAt: provenance.source.fetchedAt,
-    });
-    assert.deepEqual(provenance.images, []);
-  });
-});
-
-test('rejects plain-text cache input whose preserved source differs from content', async () => {
-  await withTemporaryCache(async (temporaryRoot) => {
-    await assert.rejects(
-      cacheNote({
-        repoRoot: temporaryRoot,
-        rules: defaultRules,
-        categorySlug: 'linux', topicSlug: 'io-multiplexing',
-        articleSlug: 'io-basics',
-        note: {
-          id: 'note-1',
-          rawText: 'preserved output',
-          content: 'normalized output',
-          sourceFormat: 'plain-text',
-          isRaw: false,
-        },
-      }),
-      /rawText.*content/i,
-    );
-    assert.equal(existsSync(path.join(temporaryRoot, '.tmp')), false);
-  });
 });
 
 test('fails cache creation when an image download has a non-success status', async () => {
@@ -852,7 +698,7 @@ test('publishes cache atomically and removes stale images on successful rerun', 
   }
 });
 
-test('locks concurrent cache writes and marks completed cache pairs', async () => {
+test('locks concurrent cache writes and marks completed cache manifests', async () => {
   await withTemporaryCache(async (temporaryRoot) => {
     let releaseFirstFetch;
     let markFirstFetchReached;
@@ -897,7 +743,7 @@ test('locks concurrent cache writes and marks completed cache pairs', async () =
   });
 });
 
-test('rolls both cache trees back when mirror publication fails', async () => {
+test('rolls cache tree back when publication fails', async () => {
   await withTemporaryCache(async (temporaryRoot) => {
     const options = {
       fetchImpl: async () => new Response('old'),
@@ -913,33 +759,24 @@ test('rolls both cache trees back when mirror publication fails', async () => {
       'io-multiplexing',
       'io-basics',
     );
-    const mirrorImage = path.join(
-      temporaryRoot,
-      '.tmp',
-      'static',
-      'images',
-      'notes',
-      'linux',
-      'io-basics',
-      'image-001.png',
-    );
     const oldContent = readFileSync(path.join(cacheDirectory, 'source', 'content.md'), 'utf8');
-    const oldMirror = readFileSync(mirrorImage);
+    const oldImage = readFileSync(path.join(cacheDirectory, 'images', 'original', 'image-001.png'));
 
     await assert.rejects(
       cacheImage(temporaryRoot, 'https://cdn.example.test/new.png', {
         ...options,
         renameImpl: async (from, to) => {
-          if (to.endsWith(path.join('static', 'images', 'notes', 'linux', 'io-basics'))) {
-            throw new Error('mirror publish failed');
+          if (to === cacheDirectory) {
+            throw new Error('cache publish failed');
           }
           return rename(from, to);
         },
       }),
-      /mirror publish failed/,
+      /cache publish failed/,
     );
     assert.equal(readFileSync(path.join(cacheDirectory, 'source', 'content.md'), 'utf8'), oldContent);
-    assert.deepEqual(readFileSync(mirrorImage), oldMirror);
+    assert.deepEqual(readFileSync(path.join(cacheDirectory, 'images', 'original', 'image-001.png')), oldImage);
+    assert.equal(existsSync(path.join(temporaryRoot, '.tmp', 'static')), false);
   });
 });
 
@@ -1068,28 +905,40 @@ test('reports lock cleanup failures without discarding a completed cache', async
   });
 });
 
-test('rejects cross-topic cache writes for an existing article mirror', async () => {
+test('allows the same article slug under different topics in article cache layout', async () => {
   await withTemporaryCache(async (temporaryRoot) => {
     const options = {
       fetchImpl: async () => new Response('image'),
       resolveHost: async () => [{ address: '8.8.8.8' }],
     };
     await cacheImage(temporaryRoot, 'https://cdn.example.test/first.png', options);
-    await assert.rejects(
-      cacheNote({
-        repoRoot: temporaryRoot,
-        rules: defaultRules,
-        categorySlug: 'linux', topicSlug: 'another-topic',
-        articleSlug: 'io-basics',
-        note: {
-          id: 'note-2',
-          rawJson: '{"content":"# Other"}',
-          content: '# Other',
-        },
-        ...options,
-      }),
-      /unique article slug/i,
+    await cacheNote({
+      repoRoot: temporaryRoot,
+      rules: defaultRules,
+      categorySlug: 'linux', topicSlug: 'another-topic',
+      articleSlug: 'io-basics',
+      note: {
+        id: 'note-2',
+        rawJson: '{"content":"# Other"}',
+        content: '# Other',
+      },
+      ...options,
+    });
+    assert.equal(
+      existsSync(path.join(
+        temporaryRoot,
+        '.tmp',
+        'content',
+        'notes',
+        'linux',
+        'another-topic',
+        'io-basics',
+        'reports',
+        'cache-manifest.json',
+      )),
+      true,
     );
+    assert.equal(existsSync(path.join(temporaryRoot, '.tmp', 'static')), false);
   });
 });
 
@@ -1128,127 +977,31 @@ test('rejects cache paths that traverse an existing symlink', async (t) => {
   }
 });
 
-test('CLI cache requires confirmation before creating its cache root', async () => {
-  const temporaryRoot = mkdtempSync(path.join(os.tmpdir(), 'linux-note-cli-'));
-
-  try {
-    writeRulesFixture(temporaryRoot);
-
-    await assert.rejects(
-      execFileAsync(
-        process.execPath,
-        [
-          path.join(skillRoot, 'youdao-note-migration.mjs'),
-          'cache',
-          '--id',
-          'note-1',
-          '--category', 'linux', '--topic',
-          'io-multiplexing',
-          '--article',
-          'io-basics',
-        ],
-        { cwd: temporaryRoot },
-      ),
-      (error) => error.code !== 0 && /--confirmed/.test(error.stderr),
-    );
-    assert.equal(existsSync(path.join(temporaryRoot, '.tmp')), false);
-  } finally {
-    rmSync(temporaryRoot, { force: true, recursive: true });
-  }
-});
-
-test('CLI formats safe preflight and search JSON without exposing command output', async () => {
-  const output = [];
-  const dependencies = {
-    preflight: async () => ({
-      version: 'youdaonote 1.0.0',
-      healthCheck: { ok: true },
-      rootsListed: true,
-    }),
-    search: async () => ({
-      stdout: '📄 note-1\tI/O 多路复用\n📁 root\tLinux\n',
-      stderr: '',
-    }),
-  };
-
-  await runCli(['preflight'], { repoRoot, dependencies, write: (value) => output.push(value) });
-  assert.deepEqual(JSON.parse(output.pop()), {
-    version: 'youdaonote 1.0.0',
-    healthCheck: { ok: true },
-    rootsListed: true,
-  });
-
-  await runCli(
-    ['search', '--title', 'I/O'],
-    { repoRoot, dependencies, write: (value) => output.push(value) },
-  );
-  assert.deepEqual(JSON.parse(output.pop()), [{ id: 'note-1', title: 'I/O 多路复用' }]);
-});
-
-test('CLI cache only reads after an explicit confirmation flag', async () => {
-  let readCalls = 0;
-  const output = [];
-  const dependencies = {
-    read: async () => {
-      readCalls += 1;
-      return { rawJson: '{"content":"# Linux"}', content: '# Linux' };
-    },
-    cache: async () => ({
-      cacheDirectory: '.tmp/content/notes/linux/io-multiplexing/io-basics',
-      imageCount: 0,
-      provenancePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/reports/provenance.json',
-    }),
-  };
-
-  await assert.rejects(
-    runCli(
-      ['cache', '--id', 'note-1', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'],
-      { repoRoot, dependencies, write: (value) => output.push(value) },
-    ),
-    /--confirmed/,
-  );
-  assert.equal(readCalls, 0);
-
-  await runCli(
-    [
-      'cache',
-      '--id',
-      'note-1',
-      '--category', 'linux', '--topic',
-      'io-multiplexing',
-      '--article',
-      'io-basics',
-      '--confirmed',
-    ],
-    { repoRoot, dependencies, write: (value) => output.push(value) },
-  );
-  assert.equal(readCalls, 1);
-  assert.deepEqual(JSON.parse(output.pop()), {
-    cacheDirectory: '.tmp/content/notes/linux/io-multiplexing/io-basics',
-    imageCount: 0,
-    provenancePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/reports/provenance.json',
-  });
-});
-
-test('migration skill requires preflight, candidate confirmation, and tmp-only cache', () => {
+test('migration skill requires share-info confirmation and tmp-only cache', () => {
   const skill = readFileSync(
     path.join(repoRoot, '.cursor', 'skills', 'youdao-note-migration', 'SKILL.md'),
     'utf8',
   );
 
-  assert.match(skill, /preflight/);
-  assert.match(skill, /search --title/);
   assert.match(skill, /--confirmed/);
-  assert.match(skill, /只写 `.tmp`/);
+  assert.match(skill, /只写该文章的 `\.tmp\/content\/notes\/|缓存与临时候选只写/);
+  assert.match(skill, /禁止在 `\.tmp\/` 根目录/);
   assert.match(skill, /不直接写 `content\/` 或最终 `static\/`/);
-  assert.match(skill, /share-info --share-id/);
-  assert.match(skill, /cache-share --share-id/);
-  assert.match(skill, /公开 API shareId/);
-  assert.match(skill, /index\.html\?id=/);
-  assert.match(skill, /纯文本.*source\/note\.txt/);
-  assert.match(skill, /无法提供.*嵌入图片.*公共分享.*导出/);
-  assert.match(skill, /首个非空白字符.*`\{`.*对象 JSON/);
-  assert.match(skill, /rawText.*content.*完全一致/);
+  assert.match(skill, /share-info --share-id|scripts\/share-info\.mjs --share-id/);
+  assert.match(skill, /cache-share\.mjs --share-id|cache-share --share-id/);
+  assert.match(skill, /公共分享缓存/);
+  assert.match(skill, /短链|share\.note\.youdao\.com\/s\//);
+  assert.match(skill, /32 位 hex|shareId-or-url/);
+  assert.match(skill, /勿.*手动打开浏览器|勿.*打开浏览器/);
+  assert.match(skill, /仅支持公共分享|不走私有笔记/);
+  assert.doesNotMatch(skill, /\bpreflight\b/);
+  assert.doesNotMatch(skill, /search --title/);
+  assert.doesNotMatch(skill, /\byoudaonote\b/i);
+  assert.doesNotMatch(skill, /API[ -]?[Kk]ey/);
+  assert.doesNotMatch(skill, /私有 CLI 缓存/);
+  assert.doesNotMatch(skill, /source\/note\.txt/);
+  assert.doesNotMatch(skill, /plain-text/);
+  assert.doesNotMatch(skill, /必须.*打开浏览器.*短链|短链接必须.*API/);
 });
 
 test('validates a public share ID and parses a complete public API response', async () => {
@@ -1283,6 +1036,152 @@ test('validates a public share ID and parses a complete public API response', as
   });
   assert.equal(calls[0], `https://note.youdao.com/yws/public/note/${shareId}?sev=j1&editorType=0`);
   assert.equal(share.title, 'Linux I/O');
+});
+
+test('resolveShareInput passes through hex share IDs without network access', async () => {
+  const shareId = '2712403aa99569831b6a4e38c73afec6';
+  let requestCalls = 0;
+
+  assert.equal(
+    await resolveShareInput(shareId, {
+      requestImpl: async () => {
+        requestCalls += 1;
+        throw new Error('network must not be used for hex share IDs');
+      },
+    }),
+    shareId,
+  );
+  assert.equal(
+    await resolveShareInput(shareId.toUpperCase(), {
+      requestImpl: async () => {
+        requestCalls += 1;
+        throw new Error('network must not be used for hex share IDs');
+      },
+    }),
+    shareId,
+  );
+  assert.equal(requestCalls, 0);
+});
+
+test('resolveShareInput extracts hex from long share links without following redirects', async () => {
+  const shareId = '2712403aa99569831b6a4e38c73afec6';
+  let requestCalls = 0;
+  const longUrl =
+    `https://share.note.youdao.com/ynoteshare/index.html?id=${shareId}&type=note`;
+
+  assert.equal(
+    await resolveShareInput(longUrl, {
+      requestImpl: async () => {
+        requestCalls += 1;
+        throw new Error('network must not be used when id is already present');
+      },
+    }),
+    shareId,
+  );
+  assert.equal(requestCalls, 0);
+});
+
+test('resolveShareInput follows a short share URL redirect to a hex share ID', async () => {
+  const shareId = '2712403aa99569831b6a4e38c73afec6';
+  const shortUrl = 'https://share.note.youdao.com/s/abcShortToken';
+  const calls = [];
+
+  const resolved = await resolveShareInput(shortUrl, {
+    resolveHost: async () => [{ address: '8.8.8.8' }],
+    requestImpl: async (url, options) => {
+      calls.push({ url, address: options.address });
+      return {
+        status: 302,
+        headers: {
+          location: `https://share.note.youdao.com/ynoteshare/index.html?id=${shareId}&type=note`,
+        },
+        stream: Readable.from([]),
+        abort: () => {},
+      };
+    },
+  });
+
+  assert.equal(resolved, shareId);
+  assert.deepEqual(calls, [{ url: shortUrl, address: '8.8.8.8' }]);
+});
+
+test('resolveShareInput rejects illegal hosts and private DNS answers', async () => {
+  await assert.rejects(
+    resolveShareInput('https://evil.example.test/s/token', {
+      resolveHost: async () => [{ address: '8.8.8.8' }],
+      requestImpl: async () => {
+        throw new Error('network must not be used for illegal hosts');
+      },
+    }),
+    /not allowed/i,
+  );
+
+  await assert.rejects(
+    resolveShareInput('https://share.note.youdao.com/s/token', {
+      resolveHost: async () => [{ address: '127.0.0.1' }],
+      requestImpl: async () => {
+        throw new Error('network must not be used for private DNS answers');
+      },
+    }),
+    /public address/i,
+  );
+});
+
+test('resolveShareInput rejects more than three verified redirect hops', async () => {
+  let calls = 0;
+
+  await assert.rejects(
+    resolveShareInput('https://share.note.youdao.com/s/start', {
+      resolveHost: async () => [{ address: '8.8.8.8' }],
+      requestImpl: async () => {
+        calls += 1;
+        return {
+          status: 302,
+          headers: { location: `https://share.note.youdao.com/s/hop-${calls}` },
+          stream: Readable.from([]),
+          abort: () => {},
+        };
+      },
+    }),
+    /redirect/i,
+  );
+  assert.equal(calls, 4);
+});
+
+test('share-info accepts a short URL by resolving it before reading the share', async () => {
+  const output = [];
+  const shareId = '2712403aa99569831b6a4e38c73afec6';
+  const shortUrl = 'https://share.note.youdao.com/s/cliToken';
+  let readShareId;
+
+  await shareInfoMain(
+    ['--share-id', shortUrl],
+    {
+      dependencies: {
+        resolveShareInput: async (input) => {
+          assert.equal(input, shortUrl);
+          return shareId;
+        },
+        readShare: async (id) => {
+          readShareId = id;
+          return {
+            shareId: id,
+            title: 'Resolved short link',
+            content: '<p>body</p>',
+            rawJson: '{}',
+          };
+        },
+      },
+      write: (value) => output.push(value),
+    },
+  );
+
+  assert.equal(readShareId, shareId);
+  assert.deepEqual(JSON.parse(output.pop()), {
+    title: 'Resolved short link',
+    shareId,
+    imageCount: 0,
+  });
 });
 
 test('uses injected DNS and a pinned request implementation for public share reads', async () => {
@@ -1349,8 +1248,8 @@ test('cache-share requires confirmation before reading or creating a cache direc
   try {
     writeRulesFixture(temporaryRoot);
     await assert.rejects(
-      runCli(
-        ['cache-share', '--share-id', shareId, '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'],
+      cacheShareMain(
+        ['--share-id', shareId, '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'],
         {
           repoRoot: temporaryRoot,
           dependencies: {
@@ -1374,8 +1273,8 @@ test('share-info prints only title, share ID, and image count', async () => {
   const output = [];
   const shareId = '2712403aa99569831b6a4e38c73afec6';
 
-  await runCli(
-    ['share-info', '--share-id', shareId],
+  await shareInfoMain(
+    ['--share-id', shareId],
     {
       dependencies: {
         readShare: async () => ({
@@ -1511,6 +1410,7 @@ test('draft template requires provenance, change, image, target, and approval me
   assert.deepEqual(template.required, [
     'sourceSections',
     'outputSections',
+    'formatChanges',
     'contentChanges',
     'images',
     'target',
@@ -1526,6 +1426,33 @@ test('draft template requires provenance, change, image, target, and approval me
     'ref',
     'sourceSectionRefs',
     'paragraphs',
+  ]);
+  assert.deepEqual(template.properties.formatChanges.items.required, [
+    'category',
+    'location',
+    'sourceExcerpt',
+    'reason',
+    'status',
+    'approvalId',
+  ]);
+  assert.deepEqual(template.properties.formatChanges.items.properties.location, {
+    type: 'string',
+    minLength: 1,
+  });
+  assert.deepEqual(template.properties.formatChanges.items.properties.sourceExcerpt, {
+    type: 'string',
+    minLength: 1,
+  });
+  assert.match(
+    template.properties.images.items.properties.cachePath.pattern,
+    /images\/\(original\|generated\)/,
+  );
+  assert.deepEqual(template.properties.formatChanges.items.properties.category.enum, [
+    'heading-structure',
+    'emphasis-syntax',
+    'chinese-punctuation',
+    'code-fence-comments',
+    'other-format',
   ]);
   assert.deepEqual(template.properties.contentChanges.items.required, [
     'kind',
@@ -1550,6 +1477,21 @@ test('draft template requires provenance, change, image, target, and approval me
     'status',
     'approvalId',
   ]);
+  assert.deepEqual(template.properties.images.items.properties.decision.enum, [
+    'preserve-original',
+    'markdown-transcription',
+    'redraw-candidate',
+    'alternate-expression',
+    'blocked',
+  ]);
+  assert.deepEqual(template.properties.images.items.properties.expressionForm, {
+    type: 'string',
+    minLength: 1,
+  });
+  assert.equal(
+    template.properties.images.items.allOf[0].then.required.includes('expressionForm'),
+    true,
+  );
   assert.deepEqual(template.properties.target.required, [
     'title',
     'categorySlug',
@@ -1589,6 +1531,7 @@ function createApprovedDraft() {
         paragraphs: [{ ref: 'paragraph-1', sourceSectionRefs: ['source-1'] }],
       },
     ],
+    formatChanges: [],
     contentChanges: [
       {
         kind: 'structural',
@@ -1602,7 +1545,7 @@ function createApprovedDraft() {
     images: [
       {
         source: 'https://cdn.example.test/io.png',
-        cachePath: '.tmp/static/images/notes/linux/io-basics/image-001.png',
+        cachePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/images/original/image-001.png',
         finalPath: 'static/images/notes/linux/io-basics/image-001.png',
         sourceSectionRef: 'source-1',
         decision: 'preserve-original',
@@ -1650,8 +1593,12 @@ function createApprovedMarkdown() {
     '## 1. I/O basics',
     '### 1.1. Details',
     '#### 1.1.1. Example',
+    '### 1.2. Extra',
     '',
     '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+    '',
+    '## 2. Follow-up',
+    '### 2.1. Notes',
   ].join('\n');
 }
 
@@ -1661,6 +1608,291 @@ test('draft validator accepts mapped output with Hugo heading and image paths', 
 
   assert.doesNotThrow(() => validateDraftMetadata(draft, draftValidationOptions));
   assert.doesNotThrow(() => validateDraftOutput(draft, markdown, draftValidationOptions));
+});
+
+test('draft validator accepts alternate-expression when expressionForm is recorded', () => {
+  const draft = createApprovedDraft();
+  draft.images[0].decision = 'alternate-expression';
+  draft.images[0].expressionForm = 'table';
+  draft.images[0].finalPath = 'static/images/notes/linux/io-basics/image-001.png';
+  const markdown = createApprovedMarkdown().replace(
+    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)\n\n| col |\n| --- |\n| val |',
+  );
+
+  assert.doesNotThrow(() => validateDraftMetadata(draft, draftValidationOptions));
+  assert.doesNotThrow(() => validateDraftOutput(draft, markdown, draftValidationOptions));
+});
+
+test('draft validator accepts approved formatChanges by category with unique approvals', () => {
+  const draft = createApprovedDraft();
+  draft.approval.approvals.push(
+    {
+      id: 'approval-format-heading',
+      status: 'approved',
+      recordedAt: '2026-07-11T08:00:00Z',
+      confirmedBy: 'wunianor',
+      confirmedAt: '2026-07-11T08:00:00Z',
+    },
+    {
+      id: 'approval-format-punctuation',
+      status: 'approved',
+      recordedAt: '2026-07-11T08:00:00Z',
+      confirmedBy: 'wunianor',
+      confirmedAt: '2026-07-11T08:00:00Z',
+    },
+    {
+      id: 'approval-format-punctuation-2',
+      status: 'approved',
+      recordedAt: '2026-07-11T08:00:00Z',
+      confirmedBy: 'wunianor',
+      confirmedAt: '2026-07-11T08:00:00Z',
+    },
+  );
+  draft.formatChanges = [
+    {
+      category: 'heading-structure',
+      location: '## 1. shell',
+      sourceExcerpt: '## 1. shell\n### 1.1. only-child\n#### 1.1.1. deeper',
+      reason: 'Flatten a single top-level ## shell',
+      status: 'approved',
+      approvalId: 'approval-format-heading',
+    },
+    {
+      category: 'chinese-punctuation',
+      location: 'paragraph after ### 1.1.',
+      sourceExcerpt: '例如, 这里',
+      reason: 'Use Chinese punctuation outside code spans',
+      status: 'approved',
+      approvalId: 'approval-format-punctuation',
+    },
+    {
+      category: 'chinese-punctuation',
+      location: 'paragraph after #### 1.1.1.',
+      sourceExcerpt: '另外; 还有',
+      reason: 'Second punctuation instance confirmed separately',
+      status: 'approved',
+      approvalId: 'approval-format-punctuation-2',
+    },
+  ];
+
+  assert.doesNotThrow(() => validateDraftMetadata(draft, draftValidationOptions));
+  assert.doesNotThrow(() => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions));
+});
+
+test('draft validator accepts generated cachePath for redraw-candidate images', () => {
+  const draft = createApprovedDraft();
+  draft.images[0].decision = 'redraw-candidate';
+  draft.images[0].cachePath =
+    '.tmp/content/notes/linux/io-multiplexing/io-basics/images/generated/image-001.png';
+
+  assert.doesNotThrow(() => validateDraftMetadata(draft, draftValidationOptions));
+  assert.doesNotThrow(() => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions));
+});
+
+test('draft metadata requires per-instance formatChanges approvals', () => {
+  const cases = [
+    {
+      name: 'missing formatChanges array',
+      mutate: (draft) => {
+        delete draft.formatChanges;
+      },
+      expected: /formatChanges/,
+    },
+    {
+      name: 'unknown format category',
+      mutate: (draft) => {
+        draft.formatChanges = [{
+          category: 'rewrite-style',
+          location: 'body',
+          sourceExcerpt: 'text',
+          reason: 'not allowed',
+          status: 'approved',
+          approvalId: 'approval-1',
+        }];
+      },
+      expected: /formatChanges\[0\]\.category/,
+    },
+    {
+      name: 'missing location',
+      mutate: (draft) => {
+        draft.formatChanges = [{
+          category: 'emphasis-syntax',
+          sourceExcerpt: '**text,**',
+          reason: 'fix punctuation adjacency',
+          status: 'approved',
+          approvalId: 'approval-1',
+        }];
+      },
+      expected: /formatChanges\[0\]\.location/,
+    },
+    {
+      name: 'missing sourceExcerpt',
+      mutate: (draft) => {
+        draft.formatChanges = [{
+          category: 'emphasis-syntax',
+          location: 'paragraph 1',
+          reason: 'fix punctuation adjacency',
+          status: 'approved',
+          approvalId: 'approval-1',
+        }];
+      },
+      expected: /formatChanges\[0\]\.sourceExcerpt/,
+    },
+    {
+      name: 'shared approvalId across format changes',
+      mutate: (draft) => {
+        draft.formatChanges = [
+          {
+            category: 'emphasis-syntax',
+            location: 'first',
+            sourceExcerpt: '**a,**',
+            reason: 'first',
+            status: 'approved',
+            approvalId: 'approval-1',
+          },
+          {
+            category: 'code-fence-comments',
+            location: 'second',
+            sourceExcerpt: '作用:',
+            reason: 'second',
+            status: 'approved',
+            approvalId: 'approval-1',
+          },
+        ];
+      },
+      expected: /formatChanges\[1\]\.approvalId.*unique per format/i,
+    },
+    {
+      name: 'missing format approvalId',
+      mutate: (draft) => {
+        draft.formatChanges = [{
+          category: 'other-format',
+          location: 'body',
+          sourceExcerpt: 'snippet',
+          reason: 'misc',
+          status: 'approved',
+        }];
+      },
+      expected: /formatChanges\[0\]\.approvalId/,
+    },
+    {
+      name: 'rejects legacy static mirror cachePath',
+      mutate: (draft) => {
+        draft.images[0].cachePath = '.tmp/static/images/notes/linux/io-basics/image-001.png';
+      },
+      expected: /images\[0\]\.cachePath/,
+    },
+  ];
+
+  for (const { name, mutate, expected } of cases) {
+    const draft = createApprovedDraft();
+    mutate(draft);
+    assert.throws(() => validateDraftMetadata(draft, draftValidationOptions), expected, name);
+  }
+});
+
+test('draft output rejects formatChanges that are not approved', () => {
+  const draft = createApprovedDraft();
+  draft.approval.approvals.push({
+    id: 'approval-format-pending',
+    status: 'pending',
+    recordedAt: '2026-07-11T08:00:00Z',
+    confirmedBy: 'wunianor',
+    confirmedAt: '2026-07-11T08:00:00Z',
+  });
+  draft.formatChanges = [{
+    category: 'heading-structure',
+    location: '## 1. pending shell',
+    sourceExcerpt: '## 1. pending shell\n### 1.1. child',
+    reason: 'pending flatten plan',
+    status: 'approved',
+    approvalId: 'approval-format-pending',
+  }];
+
+  assert.throws(
+    () => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions),
+    /formatChanges\[0\]\.approvalId/,
+  );
+
+  draft.formatChanges[0].approvalId = 'approval-1';
+  draft.formatChanges[0].status = 'pending';
+  assert.throws(
+    () => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions),
+    /formatChanges\[0\]\.status/,
+  );
+});
+
+test('draft metadata requires per-image approvals and alternate-expression form', () => {
+  const cases = [
+    {
+      name: 'missing image approvalId',
+      mutate: (draft) => {
+        delete draft.images[0].approvalId;
+      },
+      expected: /images\[0\]\.approvalId/,
+    },
+    {
+      name: 'shared approvalId across images',
+      mutate: (draft) => {
+        draft.images.push({
+          source: 'https://cdn.example.test/io-2.png',
+          cachePath: '.tmp/content/notes/linux/io-multiplexing/io-basics/images/original/image-002.png',
+          finalPath: 'static/images/notes/linux/io-basics/image-002.png',
+          sourceSectionRef: 'source-1',
+          decision: 'preserve-original',
+          status: 'approved',
+          approvalId: 'approval-1',
+        });
+      },
+      expected: /images\[1\]\.approvalId.*unique per image/i,
+    },
+    {
+      name: 'unknown image decision',
+      mutate: (draft) => {
+        draft.images[0].decision = 'keep-all';
+      },
+      expected: /images\[0\]\.decision/,
+    },
+    {
+      name: 'alternate-expression without expressionForm',
+      mutate: (draft) => {
+        draft.images[0].decision = 'alternate-expression';
+      },
+      expected: /images\[0\]\.expressionForm/,
+    },
+    {
+      name: 'expressionForm on preserve-original',
+      mutate: (draft) => {
+        draft.images[0].expressionForm = 'table';
+      },
+      expected: /images\[0\]\.expressionForm/,
+    },
+  ];
+
+  for (const { name, mutate, expected } of cases) {
+    const draft = createApprovedDraft();
+    mutate(draft);
+    assert.throws(() => validateDraftMetadata(draft, draftValidationOptions), expected, name);
+  }
+});
+
+test('draft output rejects images whose approval is not approved', () => {
+  const draft = createApprovedDraft();
+  draft.approval.approvals.push({
+    id: 'approval-image-pending',
+    status: 'pending',
+    recordedAt: '2026-07-11T08:00:00Z',
+    confirmedBy: 'wunianor',
+    confirmedAt: '2026-07-11T08:00:00Z',
+  });
+  draft.images[0].approvalId = 'approval-image-pending';
+  draft.images[0].status = 'approved';
+
+  assert.throws(
+    () => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions),
+    /images\[0\]\.approvalId/,
+  );
 });
 
 test('draft output requires globally and individually approved decisions', () => {
@@ -1684,6 +1916,19 @@ test('draft output requires globally and individually approved decisions', () =>
       },
     },
     {
+      name: 'format change blocked',
+      mutate: (draft) => {
+        draft.formatChanges = [{
+          category: 'emphasis-syntax',
+          location: 'blocked emphasis',
+          sourceExcerpt: '**text,**',
+          reason: 'blocked emphasis fix',
+          status: 'blocked',
+          approvalId: 'approval-1',
+        }];
+      },
+    },
+    {
       name: 'image decision pending',
       mutate: (draft) => {
         draft.images[0].status = 'pending';
@@ -1696,7 +1941,7 @@ test('draft output requires globally and individually approved decisions', () =>
     mutate(draft);
     assert.throws(
       () => validateDraftOutput(draft, createApprovedMarkdown(), draftValidationOptions),
-      /approval|contentChanges|images/,
+      /approval|formatChanges|contentChanges|images/,
       name,
     );
   }
@@ -1770,7 +2015,7 @@ test('draft output requires consecutive heading numbers and parent prefixes', ()
     },
     {
       name: 'sibling jump',
-      markdown: () => `${createApprovedMarkdown()}\n## 3. Another section`,
+      markdown: () => `${createApprovedMarkdown()}\n## 4. Another section`,
     },
     {
       name: 'wrong parent prefix',
@@ -1783,8 +2028,8 @@ test('draft output requires consecutive heading numbers and parent prefixes', ()
     {
       name: 'standalone unnumbered subsection',
       markdown: () => createApprovedMarkdown().replace(
-        '### 1.1. Details\n#### 1.1.1. Example\n\n',
-        '### Details\n\n',
+        '### 1.1. Details\n#### 1.1.1. Example\n### 1.2. Extra\n\n',
+        '### Details\n### 1.2. Extra\n\n',
       ),
     },
   ];
@@ -1796,6 +2041,407 @@ test('draft output requires consecutive heading numbers and parent prefixes', ()
       name,
     );
   }
+});
+
+function markdownWithFrontMatter(body, { allowSoleTopLevelHeading = false } = {}) {
+  const headingCount = String(body)
+    .split(/\r?\n/)
+    .filter((line) => /^## \d+\./.test(line))
+    .length;
+  const normalizedBody =
+    allowSoleTopLevelHeading || headingCount !== 1
+      ? body
+      : `${String(body).trimEnd()}\n\n## 2. More\n### 2.1. Note`;
+  return [
+    '---',
+    'title: "I/O basics"',
+    'description: "Basics of Linux I/O"',
+    'date: "2026-07-11"',
+    'draft: false',
+    'type: "note"',
+    'weight: 10',
+    'categories:',
+    '  - "linux"',
+    'tags:',
+    '  - "io"',
+    '---',
+    '',
+    normalizedBody,
+    '',
+    '![I/O diagram](/images/notes/linux/io-basics/image-001.png)',
+  ].join('\n');
+}
+
+function draftWithApprovedHeadingStructure() {
+  const draft = createApprovedDraft();
+  draft.approval.approvals.push({
+    id: 'approval-format-heading',
+    status: 'approved',
+    recordedAt: '2026-07-11T08:00:00Z',
+    confirmedBy: 'wunianor',
+    confirmedAt: '2026-07-11T08:00:00Z',
+  });
+  draft.formatChanges = [{
+    category: 'heading-structure',
+    location: 'top-level ## shells',
+    sourceExcerpt: '## 1. Shell A\n### 1.1. Real chapter',
+    reason: 'Flatten top-level ## shells',
+    status: 'approved',
+    approvalId: 'approval-format-heading',
+  }];
+  return draft;
+}
+
+test('heading-structure gate fails on unfixed top-level ## shells without approval', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Shell A',
+    '### 1.1. Real chapter',
+    '#### 1.1.1. First',
+    '#### 1.1.2. Second',
+    '## 2. Shell B',
+    '### 2.1. Other chapter',
+    '#### 2.1.1. Nested',
+  ].join('\n'));
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /heading-structure/,
+  );
+});
+
+test('heading-structure gate passes unfixed top-level ## shells when category is approved', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Shell A',
+    '### 1.1. Real chapter',
+    '#### 1.1.1. First',
+    '#### 1.1.2. Second',
+    '## 2. Shell B',
+    '### 2.1. Other chapter',
+    '#### 2.1.1. Nested',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(draftWithApprovedHeadingStructure(), markdown, draftValidationOptions);
+  });
+});
+
+test('heading-structure gate passes already-flattened multi-section markdown without the category', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Real chapter A',
+    '### 1.1. First',
+    '### 1.2. Second',
+    '## 2. Real chapter B',
+    '### 2.1. Nested',
+    '### 2.2. More',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('heading-structure gate fails on sole top-level ## without approval', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Sole shell',
+    '### 1.1. Intermediate',
+    '#### 1.1.1. First',
+    '#### 1.1.2. Second',
+  ].join('\n'), { allowSoleTopLevelHeading: true });
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /heading-structure/,
+  );
+});
+
+test('heading-structure gate passes sole top-level ## when category is approved', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Sole shell',
+    '### 1.1. Intermediate',
+    '#### 1.1.1. First',
+    '#### 1.1.2. Second',
+  ].join('\n'), { allowSoleTopLevelHeading: true });
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(draftWithApprovedHeadingStructure(), markdown, draftValidationOptions);
+  });
+});
+
+test('heading-structure gate fails on sole ## with body only without approval', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Overview',
+    '',
+    'Body under the sole top-level heading.',
+  ].join('\n'), { allowSoleTopLevelHeading: true });
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /heading-structure/,
+  );
+});
+
+test('heading-structure gate ignores deeper ### single-child nests alone', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section A',
+    '### 1.1. First',
+    '### 1.2. Parent with one child',
+    '#### 1.2.1. Only grandchild',
+    '## 2. Section B',
+    '### 2.1. Alpha',
+    '### 2.2. Beta',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('heading-structure gate ignores ## with a single ### that has no further subheadings', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section A',
+    '### 1.1. Only child with body text only',
+    '',
+    'Body under the sole ###.',
+    '## 2. Section B',
+    '### 2.1. Alpha',
+    '### 2.2. Beta',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+function draftWithApprovedFormatCategory(category, reason = `Approved ${category}`) {
+  const draft = createApprovedDraft();
+  const approvalId = `approval-format-${category}`;
+  draft.approval.approvals.push({
+    id: approvalId,
+    status: 'approved',
+    recordedAt: '2026-07-11T08:00:00Z',
+    confirmedBy: 'wunianor',
+    confirmedAt: '2026-07-11T08:00:00Z',
+  });
+  draft.formatChanges = [{
+    category,
+    location: `format gate for ${category}`,
+    sourceExcerpt: `excerpt for ${category}`,
+    reason,
+    status: 'approved',
+    approvalId,
+  }];
+  return draft;
+}
+
+test('emphasis-syntax gate fails on punctuation jammed into bold markers', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '1.**(最重要)能管理的fd数量太少了,**',
+  ].join('\n'));
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /emphasis-syntax/,
+  );
+});
+
+test('emphasis-syntax gate fails on unclosed emphasis outside code', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '这是 **未闭合的强调',
+  ].join('\n'));
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /emphasis-syntax/,
+  );
+});
+
+test('emphasis-syntax gate ignores emphasis markers inside code fences and inline code', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    'Use `**literal**` and:',
+    '```',
+    '**not emphasis,**',
+    '```',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('emphasis-syntax gate passes broken emphasis when category is approved', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    // Chinese fullwidth comma still trips emphasis adjacency, but not chinese-punctuation.
+    '**文本，**',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(
+      draftWithApprovedFormatCategory('emphasis-syntax', 'Fix emphasis punctuation'),
+      markdown,
+      draftValidationOptions,
+    );
+  });
+});
+
+test('emphasis-syntax gate passes clean markdown without the category', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '**重要**，其余正常。',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('chinese-punctuation gate fails on ASCII comma beside Chinese text', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '这是中文,还有下文。',
+  ].join('\n'));
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /chinese-punctuation/,
+  );
+});
+
+test('chinese-punctuation gate ignores ASCII punct in code, URLs, and numbering dots', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '见文档 https://example.com/a,b 与 `foo,bar`。',
+    '版本 2.0 可用。',
+    '```c',
+    'int x = 1, y = 2;',
+    '```',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('chinese-punctuation gate passes dirty prose when category is approved', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '你好;世界!',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(
+      draftWithApprovedFormatCategory('chinese-punctuation'),
+      markdown,
+      draftValidationOptions,
+    );
+  });
+});
+
+test('chinese-punctuation gate passes clean Chinese punctuation without the category', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '你好，世界！这是正常中文。',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('code-fence-comments gate fails on Chinese annotation lines without comment syntax', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '```c',
+    '作用: 演示 select',
+    '参数: nfds',
+    'int select(int nfds);',
+    '```',
+  ].join('\n'));
+
+  assert.throws(
+    () => validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions),
+    /code-fence-comments/,
+  );
+});
+
+test('code-fence-comments gate passes when annotations use language comment syntax', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '```c',
+    '// 作用: 演示 select',
+    '// 参数: nfds',
+    'int select(int nfds);',
+    '```',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('code-fence-comments gate ignores text fences and real code without annotation prefixes', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '```text',
+    '作用: 这不是代码',
+    '```',
+    '```c',
+    'int 参数 = 1;',
+    'printf("hello");',
+    '```',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(createApprovedDraft(), markdown, draftValidationOptions);
+  });
+});
+
+test('code-fence-comments gate passes dirty fences when category is approved', () => {
+  const markdown = markdownWithFrontMatter([
+    '## 1. Section',
+    '### 1.1. Details',
+    '',
+    '```python',
+    '说明: 入口',
+    'def main():',
+    '    pass',
+    '```',
+  ].join('\n'));
+
+  assert.doesNotThrow(() => {
+    validateDraftOutput(
+      draftWithApprovedFormatCategory('code-fence-comments'),
+      markdown,
+      draftValidationOptions,
+    );
+  });
 });
 
 test('draft validator rejects missing provenance, approvals, and target paths', () => {
@@ -1911,7 +2557,7 @@ test('validate-draft reports a safe JSON summary without writing output files', 
     writeFileSync(path.join(temporaryRoot, 'article.md'), createApprovedMarkdown());
 
     let output = '';
-    await runCli(['validate-draft', '--draft', 'draft.json', '--markdown', 'article.md'], {
+    await validateDraftMain(['--draft', 'draft.json', '--markdown', 'article.md'], {
       repoRoot: temporaryRoot,
       write: (value) => {
         output += value;
@@ -1930,6 +2576,7 @@ test('validate-draft reports a safe JSON summary without writing output files', 
         sourceSections: 1,
         outputSections: 1,
         paragraphs: 1,
+        formatChanges: 0,
         contentChanges: 1,
         images: 1,
       },
@@ -1946,13 +2593,13 @@ test('validate-draft rejects paths that escape the repository root', async () =>
   try {
     writeFileSync(path.join(temporaryRoot, 'draft.json'), '{}');
     await assert.rejects(
-      runCli(['validate-draft', '--draft', '../draft.json', '--markdown', 'article.md'], {
+      validateDraftMain(['--draft', '../draft.json', '--markdown', 'article.md'], {
         repoRoot: temporaryRoot,
       }),
       /draft.*repository root/i,
     );
     await assert.rejects(
-      runCli(['validate-draft', '--draft', 'draft.json', '--markdown', 'C:\\outside.md'], {
+      validateDraftMain(['--draft', 'draft.json', '--markdown', 'C:\\outside.md'], {
         repoRoot: temporaryRoot,
       }),
       /markdown.*repository root/i,
@@ -1969,8 +2616,7 @@ test('validate-draft exits nonzero with a safe JSON error summary', async () => 
       execFileAsync(
         process.execPath,
         [
-          path.join(skillRoot, 'youdao-note-migration.mjs'),
-          'validate-draft',
+          SCRIPT_PATHS['validate-draft'],
           '--draft',
           '../draft.json',
           '--markdown',
@@ -2065,9 +2711,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
   const temporaryRoot = createQualityGateRoot();
   try {
     let output = '';
-    await runCli(
+    await checkNoteMain(
       [
-        'check-note',
         '--draft',
         'draft.json',
         '--approved-markdown',
@@ -2102,9 +2747,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       `${createApprovedMarkdown()}\nA final-file discrepancy.`,
     );
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2119,9 +2763,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       /final markdown.*approved candidate/i,
     );
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2155,9 +2798,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       'unapproved',
     );
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2195,9 +2837,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       'tampered image bytes',
     );
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2223,9 +2864,8 @@ test('check-note validates final paths, approved image assets, and safe Markdown
       ),
     );
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2265,9 +2905,8 @@ test('check-note permits an absent image directory for an approved zero-image dr
     });
 
     let output = '';
-    await runCli(
+    await checkNoteMain(
       [
-        'check-note',
         '--draft',
         'draft.json',
         '--approved-markdown',
@@ -2306,9 +2945,8 @@ test('check-note requires the image directory when the approved inventory is non
     });
 
     await assert.rejects(
-      runCli(
+      checkNoteMain(
         [
-          'check-note',
           '--draft',
           'draft.json',
           '--approved-markdown',
@@ -2330,7 +2968,7 @@ test('check-note requires the image directory when the approved inventory is non
 test('check-site invokes Hugo with fixed safe arguments and reports runner failures', async () => {
   const calls = [];
   let output = '';
-  await runCli(['check-site'], {
+  await checkSiteMain([], {
     repoRoot,
     dependencies: {
       runProcess: async (command, argumentsList, options) => {
@@ -2356,7 +2994,7 @@ test('check-site invokes Hugo with fixed safe arguments and reports runner failu
     exitCode: 0,
   });
   await assert.rejects(
-    runCli(['check-site'], {
+    checkSiteMain([], {
       repoRoot,
       dependencies: {
         runProcess: async () => ({ exitCode: 127, stdout: '', stderr: 'hugo not found' }),
@@ -2371,7 +3009,7 @@ test('git-readiness permits only explicit article assets and explicit extra allo
   const runProcess = async (command, argumentsList, options) => {
     calls.push({ command, argumentsList, options });
     if (argumentsList[0] === 'branch') {
-      return { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' };
+      return { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' };
     }
     if (argumentsList[0] === 'diff') {
       return { exitCode: 0, stdout: '', stderr: '' };
@@ -2387,9 +3025,8 @@ test('git-readiness permits only explicit article assets and explicit extra allo
     };
   };
   let output = '';
-  await runCli(
+  await gitReadinessMain(
     [
-      'git-readiness',
       '--category', 'linux', '--topic',
       'io-multiplexing',
       '--article',
@@ -2430,7 +3067,7 @@ test('git-readiness permits only explicit article assets and explicit extra allo
   assert.deepEqual(JSON.parse(output), {
     valid: true,
     command: 'git-readiness',
-    branch: 'docs/linux-io-basics',
+    branch: 'docs/linux_io-multiplexing_io-basics',
     changedPaths: [
       'content/notes/linux/io-multiplexing/io-basics.md',
       'static/images/notes/linux/io-basics/image-001.png',
@@ -2438,14 +3075,14 @@ test('git-readiness permits only explicit article assets and explicit extra allo
     ],
   });
   await assert.rejects(
-    runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', '../escape'], {
+    gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', '../escape'], {
       repoRoot,
       dependencies: { runProcess },
     }),
     /articleSlug/i,
   );
   await assert.rejects(
-    runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+    gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
       repoRoot,
       dependencies: {
         runProcess: async (_command, argumentsList) =>
@@ -2454,24 +3091,23 @@ test('git-readiness permits only explicit article assets and explicit extra allo
             : { exitCode: 0, stdout: '?? .tmp/escape.md\n', stderr: '' },
       },
     }),
-    /branch.*docs\/linux-io-basics/i,
+    /branch.*docs\/linux_io-multiplexing_io-basics/i,
   );
   await assert.rejects(
-    runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+    gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
       repoRoot,
       dependencies: {
         runProcess: async (_command, argumentsList) =>
           argumentsList[0] === 'branch'
-            ? { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' }
+            ? { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' }
             : { exitCode: 0, stdout: '?? .tmp/escape.md\n', stderr: '' },
       },
     }),
     /unexpected changed paths.*\.tmp/i,
   );
   await assert.rejects(
-    runCli(
+    gitReadinessMain(
       [
-        'git-readiness',
         '--category', 'linux', '--topic',
         'io-multiplexing',
         '--article',
@@ -2484,7 +3120,7 @@ test('git-readiness permits only explicit article assets and explicit extra allo
         dependencies: {
           runProcess: async (_command, argumentsList) =>
             argumentsList[0] === 'branch'
-              ? { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' }
+              ? { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' }
               : { exitCode: 0, stdout: '?? .tmp/escape.md\n', stderr: '' },
         },
       },
@@ -2498,7 +3134,7 @@ test('git-readiness runs both diff checks before rejecting unexpected paths', as
   const runProcess = async (command, argumentsList, options) => {
     calls.push({ command, argumentsList, options });
     if (argumentsList[0] === 'branch') {
-      return { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' };
+      return { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' };
     }
     if (argumentsList[0] === 'status') {
       return { exitCode: 0, stdout: '?? .tmp/force-added.txt\n', stderr: '' };
@@ -2507,7 +3143,7 @@ test('git-readiness runs both diff checks before rejecting unexpected paths', as
   };
 
   await assert.rejects(
-    runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+    gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
       repoRoot,
       dependencies: { runProcess },
     }),
@@ -2532,13 +3168,13 @@ test('git-readiness allows an ignored root .tmp directory but rejects diff white
     writeFileSync(path.join(temporaryRoot, '.tmp', 'ignored.md'), 'temporary');
     const cleanGitRunner = async (_command, argumentsList) => {
       if (argumentsList[0] === 'branch') {
-        return { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' };
+        return { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' };
       }
       return { exitCode: 0, stdout: '', stderr: '' };
     };
 
     let output = '';
-    await runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+    await gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
       repoRoot: temporaryRoot,
       dependencies: { runProcess: cleanGitRunner },
       write: (value) => {
@@ -2548,12 +3184,12 @@ test('git-readiness allows an ignored root .tmp directory but rejects diff white
     assert.deepEqual(JSON.parse(output).changedPaths, []);
     rmSync(path.join(temporaryRoot, '.tmp'), { force: true, recursive: true });
     await assert.rejects(
-      runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+      gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
         repoRoot: temporaryRoot,
         dependencies: {
           runProcess: async (_command, argumentsList) => {
             if (argumentsList[0] === 'branch') {
-              return { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' };
+              return { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' };
             }
             if (argumentsList[0] === 'diff') {
               return { exitCode: 1, stdout: 'trailing whitespace', stderr: '' };
@@ -2565,12 +3201,12 @@ test('git-readiness allows an ignored root .tmp directory but rejects diff white
       /Git diff check.*1/i,
     );
     await assert.rejects(
-      runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+      gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
         repoRoot: temporaryRoot,
         dependencies: {
           runProcess: async (_command, argumentsList) => {
             if (argumentsList[0] === 'branch') {
-              return { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' };
+              return { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' };
             }
             if (argumentsList.includes('--cached')) {
               return { exitCode: 1, stdout: 'staged trailing whitespace', stderr: '' };
@@ -2601,7 +3237,7 @@ test('git-readiness rejects whitespace and conflict markers in allowed untracked
     mkdirSync(path.dirname(markdownPath), { recursive: true });
     const runProcess = async (_command, argumentsList) =>
       argumentsList[0] === 'branch'
-        ? { exitCode: 0, stdout: 'docs/linux-io-basics\n', stderr: '' }
+        ? { exitCode: 0, stdout: 'docs/linux_io-multiplexing_io-basics\n', stderr: '' }
         : {
           exitCode: 0,
           stdout:
@@ -2617,7 +3253,7 @@ test('git-readiness rejects whitespace and conflict markers in allowed untracked
     ]) {
       writeFileSync(markdownPath, markdown);
       await assert.rejects(
-        runCli(['git-readiness', '--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
+        gitReadinessMain(['--category', 'linux', '--topic', 'io-multiplexing', '--article', 'io-basics'], {
           repoRoot: temporaryRoot,
           dependencies: { runProcess },
         }),
@@ -2633,7 +3269,7 @@ test('quality gate command errors use safe JSON and a nonzero exit', async () =>
   await assert.rejects(
     execFileAsync(
       process.execPath,
-      [path.join(skillRoot, 'youdao-note-migration.mjs'), 'check-note'],
+      [SCRIPT_PATHS['check-note']],
       { cwd: repoRoot },
     ),
     (error) => {
@@ -2659,43 +3295,102 @@ test('strict-fidelity protocol gates non-mechanical edits and defines Hugo outpu
   );
 
   assert.match(skill, /\[严格保真生成协议\]\(generation-protocol\.md\)/);
-  assert.match(skill, /公共分享缓存.*私有 CLI 缓存/);
+  assert.match(skill, /公共分享缓存/);
+  assert.match(skill, /仅支持公共分享/);
+  assert.match(skill, /短链/);
+  assert.match(skill, /shareId-or-url/);
+  assert.match(skill, /勿.*手动打开浏览器|勿.*打开浏览器/);
+  assert.doesNotMatch(skill, /私有 CLI 缓存/);
+  assert.doesNotMatch(skill, /API[ -]?[Kk]ey/);
+  assert.doesNotMatch(skill, /必须.*打开浏览器.*短链|短链接必须.*API/);
   assert.match(skill, /变更计划/);
-  assert.match(skill, /确认后.*独立 worktree/);
+  assert.match(skill, /确认后.*当前仓库.*交付分支|当前仓库切换到交付分支/);
+  assert.doesNotMatch(skill, /独立 worktree/);
   assert.match(skill, /不得.*生成.*重排.*纠错.*正文.*确认/);
-  assert.match(skill, /候选.*id.*标题/);
-  assert.doesNotMatch(skill, /展示候选.*标题路径/);
   assert.match(skill, /内容 source 读取后.*headingPath/);
-  assert.match(skill, /AI.*缓存来源.*逐段落/);
+  assert.match(skill, /候选 Markdown 与缓存来源逐段落|与缓存来源逐段落/);
   assert.match(skill, /差异检查清单/);
   assert.match(skill, /validate-draft/);
+  assert.match(skill, /格式门禁|heading-structure.*emphasis-syntax|顶层标题空壳/);
   assert.match(skill, /不得声称机器验证器能证明/);
   assert.match(protocol, /输入\/输出契约/);
+  assert.match(protocol, /公共分享缓存/);
+  assert.match(protocol, /短链或 hex|App 短链或 hex/);
   assert.match(protocol, /章节.*图片.*溯源/);
   assert.match(protocol, /AI 语义保真审查与确定性门禁/);
   assert.match(protocol, /不能.*证明来源语义保真/);
+  assert.match(protocol, /formatChanges/);
+  assert.match(protocol, /contentChanges/);
+  assert.match(protocol, /heading-structure/);
+  assert.match(protocol, /emphasis-syntax/);
+  assert.match(protocol, /chinese-punctuation/);
+  assert.match(protocol, /code-fence-comments/);
+  assert.match(protocol, /逐处确认|location.*sourceExcerpt/);
+  assert.match(protocol, /按项确认|内容类.*按项/);
+  assert.match(protocol, /格式门禁.*heading-structure|确定性检查确认记录.*格式门禁/);
+  assert.match(protocol, /images\/original|images\/generated/);
+  assert.doesNotMatch(protocol, /\.tmp\/static/);
+  assert.doesNotMatch(protocol, /独立 worktree/);
+  assert.doesNotMatch(protocol, /门禁预留字段/);
+  assert.match(skill, /formatChanges/);
+  assert.match(skill, /contentChanges/);
+  assert.match(skill, /heading-structure/);
+  assert.match(skill, /emphasis-syntax/);
+  assert.match(skill, /chinese-punctuation/);
+  assert.match(skill, /code-fence-comments/);
+  assert.match(skill, /格式类.*逐处确认|逐处.*formatChanges|逐处提问/);
+  assert.match(skill, /内容类.*每项确认|每项确认一次/);
+  assert.match(skill, /images\/original|scripts\/|candidates\//);
+  assert.doesNotMatch(skill, /\.tmp\/static/);
   assert.match(protocol, /frontMatter/);
   assert.match(protocol, /approvalUserId/);
   assert.match(protocol, /仅允许自动进行的机械变更/);
   assert.match(protocol, /结构性.*事实性.*图片.*不确定/);
-  assert.match(protocol, /原样保留.*Markdown 转写.*候选重绘.*阻塞/);
+  assert.match(protocol, /原样保留.*Markdown 转写.*候选重绘.*用其他方式表达.*阻塞/);
+  assert.match(protocol, /alternate-expression/);
+  assert.match(protocol, /expressionForm/);
+  assert.match(protocol, /每一张.*图片.*AskQuestion|AskQuestion.*每一张/);
+  assert.match(protocol, /禁止.*批量默认|禁止.*全部原样保留/);
+  assert.match(protocol, /独立.*approvalId/);
+  assert.match(protocol, /正文锚点位置|锚点位置必须与原文/);
+  assert.match(skill, /每一张.*图.*AskQuestion|AskQuestion.*每一张/);
+  assert.match(skill, /alternate-expression/);
+  assert.match(skill, /禁止.*全部原样保留|禁止.*批量默认/);
+  assert.match(skill, /锚点位置必须与原文|正文中的图片锚点位置/);
   assert.match(protocol, /确认记录/);
   assert.match(protocol, /approvalId/);
   assert.match(protocol, /title:/);
   assert.match(protocol, /## 1\./);
   assert.match(protocol, /### 1\.1\./);
   assert.match(protocol, /#### 1\.1\.1\./);
+  assert.match(protocol, /顶层标题扁平化|仅处理顶层.*##|heading-structure/);
+  assert.match(protocol, /恰好一个.*###|仅一个.*###/);
+  assert.match(protocol, /最顶层.*##.*只出现|唯一顶层.*##|全文.*唯一.*##/);
+  assert.match(protocol, /删除该顶层|取消.*顶层.*##|###.*升为.*##/);
+  assert.match(protocol, /###` 及以下|### 及以下/);
+  assert.match(skill, /docs\/<category-slug>_<topic-slug>_<article-slug>|docs\/\{category\}_\{topic\}_\{article\}/);
+  assert.match(protocol, /docs\/<category-slug>_<topic-slug>_<article-slug>|学习笔记所在.*路径|content\/notes/);
+  assert.match(protocol, /强调语法|emphasis-syntax/);
+  assert.match(protocol, /\*\*文本,\*\*|标点.*强调|强调标记/);
+  assert.match(protocol, /中文标点|chinese-punctuation/);
+  assert.match(protocol, /代码围栏|行内代码|URL/);
+  assert.match(protocol, /代码围栏伪注释|code-fence-comments/);
+  assert.match(protocol, /作用:|参数:/);
   assert.match(protocol, /\/images\/notes\/<category-slug>\/<article-slug>\//);
   assert.match(protocol, /不得提交 `\.tmp`/);
-  assert.match(protocol, /纯文本.*嵌入图片.*公共分享.*导出/);
-  assert.match(protocol, /`\{`.*对象 JSON.*`\[`.*纯文本/);
-  assert.match(protocol, /rawText.*content.*完全一致/);
-  assert.match(skill, /写入前.*独立 worktree.*分支/);
-  assert.match(skill, /AI.*审查/);
+  assert.doesNotMatch(protocol, /私有 CLI/);
+  assert.doesNotMatch(protocol, /API[ -]?[Kk]ey/);
+  assert.doesNotMatch(protocol, /plain-text/);
+  assert.doesNotMatch(protocol, /source\/note\.txt/);
+  assert.doesNotMatch(protocol, /rawText/);
+  assert.doesNotMatch(protocol, /\byoudaonote\b/i);
+  assert.match(skill, /当前仓库.*分支 `docs\/|切换到分支 `docs\//);
+  assert.match(skill, /逐段落审查|AI.*审查/);
   assert.match(skill, /check-note/);
   assert.match(skill, /--approved-markdown/);
   assert.match(skill, /check-site/);
   assert.match(skill, /git-readiness/);
+  assert.match(skill, /validate-draft.*check-note.*check-site.*git-readiness|依次运行 `validate-draft`/);
   assert.match(skill, /路径变更/);
   assert.match(skill, /忽略的.*根目录.*\.tmp.*保留/);
   assert.match(skill, /Git.*报告.*\.tmp.*变更.*阻止/);
@@ -2704,6 +3399,7 @@ test('strict-fidelity protocol gates non-mechanical edits and defines Hugo outpu
   assert.match(skill, /用户明确.*push.*PR/);
   assert.match(skill, /明确.*合并.*删除/);
   assert.match(skill, /不得自动/);
+  assert.match(skill, /share-info.*cache-share.*validate-draft|scripts\/share-info\.mjs/);
 });
 
 test('requires a category and uses generic project-scoped migration paths', () => {
@@ -2726,7 +3422,7 @@ test('requires a category and uses generic project-scoped migration paths', () =
     {
       cacheRoot: '.tmp',
       cacheContentDir: '.tmp/content/notes/go/concurrency/select',
-      cacheImageDir: '.tmp/static/images/notes/go/select',
+      cacheImageDir: '.tmp/content/notes/go/concurrency/select/images',
       contentDir: 'content/notes/go/concurrency',
       imageDir: 'static/images/notes/go/select',
     },
@@ -2740,10 +3436,17 @@ test('keeps all Youdao migration skill files in one project skill folder', () =>
     'generation-protocol.md',
     'youdao-note-migration.json',
     'youdao-note-migration-draft-template.json',
-    'youdao-note-migration.mjs',
     'youdao-note-migration.test.mjs',
-    path.join('lib', 'cli.mjs'),
+    path.join('lib', 'script-utils.mjs'),
+    path.join('lib', 'note-check.mjs'),
     path.join('lib', 'paths.mjs'),
+    path.join('scripts', 'share-info.mjs'),
+    path.join('scripts', 'cache-share.mjs'),
+    path.join('scripts', 'paths.mjs'),
+    path.join('scripts', 'validate-draft.mjs'),
+    path.join('scripts', 'check-note.mjs'),
+    path.join('scripts', 'check-site.mjs'),
+    path.join('scripts', 'git-readiness.mjs'),
   ];
   for (const relativePath of requiredRelativePaths) {
     assert.equal(existsSync(path.join(skillDir, relativePath)), true, relativePath);
@@ -2763,6 +3466,6 @@ test('keeps all Youdao migration skill files in one project skill folder', () =>
 
   const skill = readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8');
   assert.match(skill, /^name: youdao-note-migration$/m);
-  assert.match(skill, /\.cursor\/skills\/youdao-note-migration\/youdao-note-migration\.mjs/);
+  assert.match(skill, /\.cursor\/skills\/youdao-note-migration\/scripts\/validate-draft\.mjs/);
   assert.match(skill, /全部文件均位于/);
 });

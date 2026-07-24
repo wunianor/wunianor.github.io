@@ -18,8 +18,16 @@ config/production/hugo.toml
 .DS_Store
 Thumbs.db
 
+# Local AI prompts
+prompt/
+
 # Cursor: ignore by default; track only the youdao-note-migration skill
 .cursor/*
 !.cursor/skills/
 .cursor/skills/*
 !.cursor/skills/youdao-note-migration/
+#给ai的提示词
+prompt/
+
+# Migration skill temporary cache
+.tmp/

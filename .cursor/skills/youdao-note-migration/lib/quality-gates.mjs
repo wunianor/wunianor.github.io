@@ -2,10 +2,25 @@ import { spawn } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
+import { buildDeliveryBranchName, loadRules } from './paths.mjs';
+
+/**
+ * @brief 将子进程 stdout/stderr 数据块拼接为 UTF-8 字符串。
+ * @param {Buffer[]} chunks - 二进制块数组。
+ * @returns {string} 解码后的完整文本。
+ */
 function outputText(chunks) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/**
+ * @brief 以无 shell 方式启动子进程并收集退出码与输出。
+ * @param {string} command - 可执行文件名（如 `git`、`hugo`）。
+ * @param {string[]} argumentsList - 参数列表。
+ * @param {{ cwd: string }} options - 工作目录。
+ * @returns {Promise<{ exitCode: number, stdout: string, stderr: string }>}
+ * @note 不继承 stdin；Windows 下隐藏控制台窗口；进程启动失败时 reject。
+ */
 export function runProcess(command, argumentsList, { cwd }) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, argumentsList, {
@@ -26,6 +41,13 @@ export function runProcess(command, argumentsList, { cwd }) {
   });
 }
 
+/**
+ * @brief 断言外部命令返回有效且为零的退出码。
+ * @param {{ exitCode: number } | undefined} result - `runProcess` 结果。
+ * @param {string} toolName - 工具名，用于错误消息。
+ * @returns {void}
+ * @note 退出码非零或结果畸形时抛 `Error`。
+ */
 function requireSuccessfulResult(result, toolName) {
   if (!result || !Number.isInteger(result.exitCode)) {
     throw new Error(`${toolName} runner returned an invalid result.`);
@@ -35,6 +57,12 @@ function requireSuccessfulResult(result, toolName) {
   }
 }
 
+/**
+ * @brief 以固定生产参数运行 Hugo 构建做站点门禁。
+ * @param {{ repoRoot: string, run?: typeof runProcess }} options - 仓库根与可注入的运行器。
+ * @returns {Promise<{ valid: true, command: 'check-site', exitCode: number }>}
+ * @note 固定 `hugo --minify --environment production`；Hugo 无法启动或失败时抛 `Error`。
+ */
 export async function checkSite({ repoRoot, run = runProcess }) {
   let result;
   try {
@@ -51,6 +79,12 @@ export async function checkSite({ repoRoot, run = runProcess }) {
   };
 }
 
+/**
+ * @brief 解析 `git status --porcelain=v1` 输出为变更条目列表。
+ * @param {string} statusOutput - Git 状态文本。
+ * @returns {{ status: string, changedPath: string }[]} 路径已规范为 POSIX `/`。
+ * @note 拒绝重命名箭头、引号路径等不支持格式；空输出返回 `[]`。
+ */
 function parseChangedEntries(statusOutput) {
   if (typeof statusOutput !== 'string') {
     throw new Error('Git status output is invalid.');
@@ -79,6 +113,14 @@ function parseChangedEntries(statusOutput) {
   });
 }
 
+/**
+ * @brief 判断 Git 变更路径是否在文章交付白名单内。
+ * @param {string} changedPath - 变更的相对路径。
+ * @param {string} markdownPath - 文章 Markdown 相对路径。
+ * @param {string} imageDir - 文章图片目录相对路径。
+ * @param {Set<string>} explicitAllowPaths - `--allow` 显式允许的额外路径集合。
+ * @returns {boolean} 允许提交为 `true`。
+ */
 function pathIsAllowed(changedPath, markdownPath, imageDir, explicitAllowPaths) {
   return (
     changedPath === markdownPath
@@ -87,11 +129,24 @@ function pathIsAllowed(changedPath, markdownPath, imageDir, explicitAllowPaths) 
   );
 }
 
+/**
+ * @brief 判断候选绝对路径是否落在仓库根目录之外。
+ * @param {string} root - 仓库根绝对路径。
+ * @param {string} candidate - 待检查绝对路径。
+ * @returns {boolean} 在根外为 `true`。
+ */
 function isOutsideRoot(root, candidate) {
   const relative = path.relative(root, candidate);
   return relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
 }
 
+/**
+ * @brief 检查未跟踪 Markdown 文件中的行尾空白与冲突标记。
+ * @param {string} repoRoot - 仓库根目录。
+ * @param {string} changedPath - 未跟踪 `.md` 的相对路径。
+ * @returns {string | undefined} 发现问题时返回英文描述；干净时 `undefined`。
+ * @note 经 `realpathSync` 沙箱校验；用于 `git-readiness` 在允许路径前的额外门禁。
+ */
 function untrackedMarkdownWhitespaceError(repoRoot, changedPath) {
   const root = realpathSync(repoRoot);
   const candidate = path.resolve(root, changedPath);
@@ -118,6 +173,20 @@ function untrackedMarkdownWhitespaceError(repoRoot, changedPath) {
   return undefined;
 }
 
+/**
+ * @brief 检查 Git 分支、变更路径与白空间是否满足提交就绪条件。
+ * @param {object} options - 检查参数。
+ * @param {string} options.repoRoot - 仓库根目录。
+ * @param {string} options.categorySlug - 类目 slug。
+ * @param {string} options.topicSlug - 主题 slug。
+ * @param {string} options.articleSlug - 文章 slug。
+ * @param {string} options.markdownPath - 最终 Markdown 相对路径。
+ * @param {string} options.imageDir - 最终图片目录相对路径。
+ * @param {Set<string>} options.explicitAllowPaths - 额外允许路径。
+ * @param {typeof runProcess} [options.run] - 可注入的 Git/Hugo 运行器。
+ * @returns {Promise<{ valid: true, command: 'git-readiness', branch: string, changedPaths: string[] }>}
+ * @note 须在 `docs/<category>_<topic>_<article>` 分支；`.tmp` 变更一律拒绝；先跑 `diff --check` 再报路径错误。
+ */
 export async function checkGitReadiness({
   repoRoot,
   categorySlug,
@@ -136,7 +205,11 @@ export async function checkGitReadiness({
   }
   requireSuccessfulResult(branchResult, 'Git branch check');
   const branch = branchResult.stdout.trim();
-  const expectedBranch = `docs/${categorySlug}-${articleSlug}`;
+  const expectedBranch = buildDeliveryBranchName(loadRules(repoRoot), {
+    categorySlug,
+    topicSlug,
+    articleSlug,
+  });
   if (branch !== expectedBranch) {
     throw new Error(`Git readiness requires branch "${expectedBranch}", found "${branch || '(detached HEAD)'}".`);
   }
@@ -199,6 +272,12 @@ export async function checkGitReadiness({
   };
 }
 
+/**
+ * @brief 断言最终 Markdown 不含 HTML 图片、远程链接或 `.tmp` 引用。
+ * @param {string} markdown - 最终或候选 Markdown 正文。
+ * @returns {void}
+ * @note 用于 `check-note` 与草稿校验链路；违规时抛 `Error`。
+ */
 export function assertSafeMarkdownLinks(markdown) {
   if (/<img\b/i.test(markdown)) {
     throw new Error('Markdown must not contain HTML image tags.');

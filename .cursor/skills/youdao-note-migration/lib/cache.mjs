@@ -7,12 +7,24 @@ import { isIP } from 'node:net';
 import path from 'node:path';
 
 import { extractImages } from './images.mjs';
-import { isGloballyRoutableAddress } from './network.mjs';
+import { createPinnedLookup, isGloballyRoutableAddress } from './network.mjs';
 import { buildMigrationPaths } from './paths.mjs';
 import { assertShareId } from './public-share.mjs';
 
 export const CACHE_LOCK_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * @brief 判断锁 owner 元数据是否包含有效 token、pid 与 createdAt。
+ * @param {object|null|undefined} owner - 从 owner-*.json 解析出的锁持有者对象。
+ * @returns {boolean} 元数据完整且类型合法时为 true。
+ * @note 不校验 topic/article 字段；createdAt 可为数字时间戳或 ISO 字符串。
+ */
+/**
+ * @brief 判断锁 owner 元数据是否包含有效 token、pid 与 createdAt。
+ * @param {object|null|undefined} owner - 锁 owner JSON 解析后的对象。
+ * @returns {boolean} 元数据完整且类型合法时为 true。
+ * @note 用于判断现有锁是否仍有效；不校验 topic/article 等业务字段。
+ */
 function isValidOwnerMetadata(owner) {
   return (
     typeof owner?.token === 'string' &&
@@ -26,6 +38,13 @@ function isValidOwnerMetadata(owner) {
   );
 }
 
+/**
+ * @brief 将仓库相对路径解析为绝对路径并确保不逃逸仓库根目录。
+ * @param {string} repoRoot - 仓库根目录绝对路径。
+ * @param {string} relativePath - POSIX 或平台相对路径，不得含 `..`。
+ * @returns {string} 解析后的绝对路径。
+ * @note 拒绝绝对路径与路径遍历；resolved 必须在 repoRoot 子树内。
+ */
 function resolveCachePath(repoRoot, relativePath) {
   if (
     path.isAbsolute(relativePath) ||
@@ -45,20 +64,45 @@ function resolveCachePath(repoRoot, relativePath) {
   return resolved;
 }
 
+/**
+ * @brief 拼接路径段并统一转为 POSIX 斜杠格式。
+ * @param {...string} segments - 路径段，传给 path.join。
+ * @returns {string} 以 `/` 分隔的相对或绝对路径字符串。
+ * @note 用于跨平台一致的 provenance 与 manifest 路径记录。
+ */
 function toPosixPath(...segments) {
   return path.join(...segments).replaceAll('\\', '/');
 }
 
+/**
+ * @brief 从图片 URL 路径名提取合法小写扩展名，否则回退 `.bin`。
+ * @param {string} sourceUrl - 完整 HTTP(S) 图片 URL。
+ * @returns {string} 带点扩展名，如 `.png`、`.jpg` 或 `.bin`。
+ * @note 扩展名长度 1–10 且仅含 `[a-z0-9]`；无效时使用 `.bin`。
+ */
 function imageExtension(sourceUrl) {
   const extension = path.posix.extname(new URL(sourceUrl).pathname).toLowerCase();
   return /^\.[a-z0-9]{1,10}$/.test(extension) ? extension : '.bin';
 }
 
+/**
+ * @brief 生成用于错误消息的安全显示 URL（隐藏用户凭据）。
+ * @param {string} sourceUrl - 完整 HTTP(S) URL。
+ * @returns {string} `protocol//host/pathname` 形式，host 中 `@` 前凭据已剥离。
+ * @note 仅用于日志与异常消息，不用于实际请求。
+ */
 function safeDisplayUrl(sourceUrl) {
   const url = new URL(sourceUrl);
   return `${url.protocol}//${url.host.replace(/^[^@]*@/, '')}${url.pathname}`;
 }
 
+/**
+ * @brief 解析图片 URL 主机并验证其指向公网可路由地址（SSRF 防护）。
+ * @param {string} sourceUrl - 完整 HTTP(S) 图片 URL。
+ * @param {(hostname: string) => Promise<unknown>} resolveHost - DNS 解析函数，默认 lookup。
+ * @returns {Promise<string>} 首个验证通过的 IP 地址字符串。
+ * @note localhost、`.local` 与非公网 IP 均拒绝；解析结果为空或含私网地址时抛出 Error。
+ */
 async function resolvePublicImageAddress(sourceUrl, resolveHost) {
   const url = new URL(sourceUrl);
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
@@ -83,6 +127,13 @@ async function resolvePublicImageAddress(sourceUrl, resolveHost) {
   return typeof addresses[0] === 'string' ? addresses[0] : addresses[0].address;
 }
 
+/**
+ * @brief 从 fetch Response 读取响应体并校验不超过字节上限。
+ * @param {Response} response - fetch API 响应对象。
+ * @param {number} maxResponseBytes - 允许的最大字节数。
+ * @returns {Promise<Buffer>} 响应体 Buffer。
+ * @note 依据 Content-Length 与实读长度双重检查；超限抛出 Error。
+ */
 async function responseBytes(response, maxResponseBytes) {
   const contentLength = Number(response.headers?.get?.('content-length'));
   if (Number.isFinite(contentLength) && contentLength > maxResponseBytes) {
@@ -96,6 +147,13 @@ async function responseBytes(response, maxResponseBytes) {
   return bytes;
 }
 
+/**
+ * @brief 从 Node HTTP 流式响应逐块读取并校验不超过字节上限。
+ * @param {{ headers?: object, stream: AsyncIterable<Uint8Array>, abort?: (error?: Error) => void }} response - Node 请求响应包装。
+ * @param {number} maxResponseBytes - 允许的最大字节数。
+ * @returns {Promise<Buffer>} 拼接后的响应体 Buffer。
+ * @note 超限时销毁流并 abort 请求；适用于 requestImpl 路径。
+ */
 async function streamBytes(response, maxResponseBytes) {
   const contentLength = Number(response.headers?.['content-length']);
   if (Number.isFinite(contentLength) && contentLength > maxResponseBytes) {
@@ -119,6 +177,12 @@ async function streamBytes(response, maxResponseBytes) {
   return Buffer.concat(chunks);
 }
 
+/**
+ * @brief 从 HTTP 响应头提取 Location 重定向 URL。
+ * @param {{ headers?: Headers|object }} response - fetch 或 Node 响应对象。
+ * @returns {string|null|undefined} Location 头值，缺失时 undefined/null。
+ * @note 兼容 Headers.get 与 plain object 两种 headers 形态。
+ */
 function redirectLocation(response) {
   const headers = response.headers;
   if (typeof headers?.get === 'function') {
@@ -127,6 +191,13 @@ function redirectLocation(response) {
   return headers?.location;
 }
 
+/**
+ * @brief 解析并验证 HTTP(S) 重定向 URL，拒绝凭据与非 HTTP 协议。
+ * @param {string} value - Location 头或相对 URL。
+ * @param {string} [baseUrl] - 解析相对 URL 的基址。
+ * @returns {URL} 验证通过的 URL 对象。
+ * @note 仅允许 http:/https: 且无 username/password；无效 URL 抛出 Error。
+ */
 function assertVerifiedPublicHttpUrl(value, baseUrl) {
   let url;
   try {
@@ -144,9 +215,21 @@ function assertVerifiedPublicHttpUrl(value, baseUrl) {
   return url;
 }
 
-function nodeRequest(sourceUrl, { address, lookup: pinnedLookup, signal }) {
+/**
+ * @brief 使用固定 IP 的 Node http/https 发起单次 HTTP 请求（SSRF 防护）。
+ * @param {string} sourceUrl - 完整请求 URL。
+ * @param {object} options - 请求选项。
+ * @param {string} options.address - 已验证的 pinned IP 地址。
+ * @param {(hostname: string) => string} [options.lookup] - 自定义 lookup，覆盖 address。
+ * @param {AbortSignal} [options.signal] - 超时或取消信号。
+ * @returns {Promise<{ status: number, headers: object, stream: IncomingMessage, abort: (error?: Error) => void }>} 响应包装对象。
+ * @note 通过 createPinnedLookup 绑定 DNS 结果；stream 需调用方消费。
+ */
+function nodeRequest(sourceUrl, { address, lookup: resolvePinnedAddress, signal }) {
   const url = new URL(sourceUrl);
   const transport = url.protocol === 'https:' ? https : http;
+  const pinnedAddress =
+    typeof resolvePinnedAddress === 'function' ? resolvePinnedAddress(url.hostname) : address;
 
   return new Promise((resolve, reject) => {
     const request = transport.request(
@@ -157,7 +240,7 @@ function nodeRequest(sourceUrl, { address, lookup: pinnedLookup, signal }) {
         path: `${url.pathname}${url.search}`,
         headers: { Host: url.host },
         servername: url.hostname,
-        lookup: (_hostname, _options, callback) => callback(null, pinnedLookup(_hostname), isIP(address)),
+        lookup: createPinnedLookup(pinnedAddress),
         signal,
       },
       (response) =>
@@ -173,6 +256,20 @@ function nodeRequest(sourceUrl, { address, lookup: pinnedLookup, signal }) {
   });
 }
 
+/**
+ * @brief 下载远程图片字节，支持 fetch 或 Node 请求及受控重定向策略。
+ * @param {string} sourceUrl - 图片 URL。
+ * @param {typeof fetch|undefined} fetchImpl - fetch 实现；与 requestImpl 二选一或组合使用。
+ * @param {object} options - 下载选项。
+ * @param {(hostname: string) => Promise<unknown>} options.resolveHost - DNS 解析函数。
+ * @param {number} options.timeoutMs - 超时毫秒数。
+ * @param {number} options.maxResponseBytes - 最大响应字节数。
+ * @param {typeof nodeRequest} [options.requestImpl] - Node 请求实现。
+ * @param {'reject'|'verified-public'} [options.redirectPolicy='reject'] - 重定向策略。
+ * @param {number} [options.maxRedirects=0] - verified-public 模式下最大重定向次数。
+ * @returns {Promise<Buffer>} 图片二进制内容。
+ * @note 默认拒绝重定向；超时 abort 后抛出明确错误；须先通过公网地址校验。
+ */
 async function downloadImage(
   sourceUrl,
   fetchImpl,
@@ -237,6 +334,12 @@ async function downloadImage(
   }
 }
 
+/**
+ * @brief 检查文件系统路径是否存在（含符号链接本身）。
+ * @param {string} location - 绝对或相对路径。
+ * @returns {Promise<boolean>} 存在为 true，ENOENT 为 false。
+ * @note 非 ENOENT 的 fs 错误原样抛出。
+ */
 async function pathExists(location) {
   try {
     await lstat(location);
@@ -250,6 +353,20 @@ async function pathExists(location) {
   }
 }
 
+/**
+ * @brief 获取笔记缓存目录的互斥写锁，支持过期锁回收与心跳续期。
+ * @param {string} lockDirectory - 锁目录绝对路径。
+ * @param {{ topic: string, article: string }} context - 锁标识上下文，写入 owner 元数据。
+ * @param {object} [options={}] - 锁行为选项。
+ * @param {() => number} [options.now=Date.now] - 当前时间毫秒函数。
+ * @param {() => string} [options.randomUUID] - UUID 生成函数。
+ * @param {number} [options.lockTtlMs=CACHE_LOCK_TTL_MS] - 锁 TTL，默认 15 分钟。
+ * @param {number} [options.heartbeatIntervalMs] - owner 文件 mtime 心跳间隔。
+ * @param {(location: string) => Promise<void>} [options.cleanup] - 释放锁时的清理函数。
+ * @param {(pid: number) => boolean} [options.isProcessAlive] - 检测持有进程是否存活。
+ * @returns {Promise<{ lockPath: string, ownerPath: string, token: string, assertOwned: () => Promise<void>, release: () => Promise<string[]> }>} 锁句柄。
+ * @note 并发写入同一 topic/article 时抛出 already in progress；release 返回非致命警告字符串数组。
+ */
 export async function acquireCacheLock(
   lockDirectory,
   { topic, article },
@@ -342,6 +459,11 @@ export async function acquireCacheLock(
     lockPath: lockDirectory,
     ownerPath,
     token,
+    /**
+     * @brief 断言当前进程仍持有有效锁 token。
+     * @returns {Promise<void>}
+     * @note 心跳失败或 owner 文件被替换时抛出 Cache lock ownership was lost。
+     */
     async assertOwned() {
       if (lost) throw new Error('Cache lock ownership was lost.');
       try {
@@ -352,6 +474,11 @@ export async function acquireCacheLock(
         throw new Error('Cache lock ownership was lost.');
       }
     },
+    /**
+     * @brief 停止心跳并尝试删除 owner 文件与空锁目录。
+     * @returns {Promise<string[]>} 清理过程中的非致命警告消息；成功时通常为空数组。
+     * @note token 已变更时不删除锁；ENOTEMPTY 等错误以警告形式返回而非抛出。
+     */
     async release() {
       clearInterval(heartbeat);
       try {
@@ -377,6 +504,13 @@ export async function acquireCacheLock(
   };
 }
 
+/**
+ * @brief 沿路径分量检查目标位置不在符号链接之后（缓存安全）。
+ * @param {string} repoRoot - 仓库根目录。
+ * @param {string} location - 待检查的绝对路径。
+ * @returns {Promise<void>}
+ * @note 路径须在 repoRoot 内；遇到符号链接组件时抛出 Error；ENOENT 末段允许（尚未创建）。
+ */
 async function assertNoSymlinkPath(repoRoot, location) {
   const root = path.resolve(repoRoot);
   const relativePath = path.relative(root, location);
@@ -405,6 +539,13 @@ async function assertNoSymlinkPath(repoRoot, location) {
   }
 }
 
+/**
+ * @brief 在目标目录旁创建带 UUID 的临时 staging/backup 目录路径。
+ * @param {string} targetDirectory - 最终发布目录路径。
+ * @param {string} label - 目录标签，如 `staging` 或 `backup`。
+ * @returns {string} 同级隐藏临时目录绝对路径。
+ * @note 用于原子 publish 与 rollback；名称含随机 UUID 避免冲突。
+ */
 function createStagingDirectory(targetDirectory, label) {
   return path.join(
     path.dirname(targetDirectory),
@@ -412,6 +553,12 @@ function createStagingDirectory(targetDirectory, label) {
   );
 }
 
+/**
+ * @brief 按逆序回滚 publishDirectories 的原子发布操作。
+ * @param {Array<{ target: string, backup: string, hadPrevious: boolean, published: boolean }>} backups - publishDirectories 返回的备份条目。
+ * @returns {Promise<void>}
+ * @note 已 published 的 staging 会被删除；hadPrevious 时从 backup 恢复 target。
+ */
 async function rollbackPublishedDirectories(backups) {
   for (const entry of [...backups].reverse()) {
     if (entry.published) {
@@ -423,6 +570,14 @@ async function rollbackPublishedDirectories(backups) {
   }
 }
 
+/**
+ * @brief 原子地将 staging 目录 rename 到 target，支持备份旧目录。
+ * @param {string} repoRoot - 仓库根，用于符号链接检查。
+ * @param {Array<{ staging: string, target: string }>} entries - staging 与 target 路径对。
+ * @param {typeof rename} renameImpl - rename 实现，便于测试注入。
+ * @returns {Promise<Array<{ staging: string, target: string, backup: string, hadPrevious: boolean, published: boolean }>>} 备份元数据，供后续清理或回滚。
+ * @note 任一步失败时自动 rollbackPublishedDirectories；发布前检查 symlink。
+ */
 async function publishDirectories(repoRoot, entries, renameImpl) {
   const backups = entries.map((entry) => ({
     ...entry,
@@ -459,6 +614,32 @@ async function publishDirectories(repoRoot, entries, renameImpl) {
   return backups;
 }
 
+/**
+ * @brief 将有道笔记（私有 JSON/纯文本或公开分享 HTML）写入本地迁移缓存目录。
+ * @param {object} params - 缓存参数。
+ * @param {string} params.repoRoot - 仓库根目录。
+ * @param {object} params.rules - buildMigrationPaths 使用的路径规则。
+ * @param {string} params.categorySlug - 分类 slug。
+ * @param {string} params.topicSlug - 主题 slug。
+ * @param {string} params.articleSlug - 文章 slug。
+ * @param {object} params.note - 笔记载荷，含 id、content 及 rawJson/rawText 等。
+ * @param {typeof fetch} [params.fetchImpl] - 图片下载 fetch 实现。
+ * @param {(hostname: string) => Promise<unknown>} [params.resolveHost] - DNS 解析。
+ * @param {number} [params.timeoutMs=10000] - 下载超时。
+ * @param {number} [params.maxResponseBytes] - 单图最大字节，默认 10MB。
+ * @param {typeof rename} [params.renameImpl] - 原子发布 rename。
+ * @param {Function} [params.cleanupBackup] - 备份目录清理。
+ * @param {Function} [params.cleanupLock] - 锁目录清理。
+ * @param {typeof nodeRequest} [params.requestImpl] - Node HTTP 请求实现。
+ * @param {'reject'|'verified-public'} [params.imageRedirectPolicy] - 图片重定向策略。
+ * @param {number} [params.maxImageRedirects] - 最大重定向次数。
+ * @param {() => number} [params.clock] - 时间源，供锁 TTL 使用。
+ * @param {number} [params.lockTtlMs] - 锁 TTL。
+ * @param {number} [params.heartbeatMs] - 锁心跳间隔。
+ * @param {(pid: number) => boolean} [params.isProcessAlive] - 进程存活检测。
+ * @returns {Promise<{ cacheDirectory: string, imageCount: number, provenancePath: string, warnings: string[] }>} 缓存结果摘要。
+ * @note 使用 staging + 原子 rename 发布；公开分享须 verified-public 重定向；finally 中清理 staging 并释放锁。
+ */
 export async function cacheNote({
   repoRoot,
   rules,
@@ -521,16 +702,13 @@ export async function cacheNote({
 
   const paths = buildMigrationPaths(rules, { categorySlug, topicSlug, articleSlug });
   const cacheDirectory = resolveCachePath(repoRoot, paths.cacheContentDir);
-  const mirrorDirectory = resolveCachePath(repoRoot, paths.cacheImageDir);
   const stagingCacheDirectory = createStagingDirectory(cacheDirectory, 'staging');
-  const stagingMirrorDirectory = createStagingDirectory(mirrorDirectory, 'staging');
   const sourceDirectory = path.join(stagingCacheDirectory, 'source');
   const originalDirectory = path.join(stagingCacheDirectory, 'images', 'original');
   const reportsDirectory = path.join(stagingCacheDirectory, 'reports');
   const provenanceImageDirectory = toPosixPath(paths.cacheContentDir, 'images', 'original');
   const provenancePath = toPosixPath(paths.cacheContentDir, 'reports', 'provenance.json');
   const manifestPath = path.join(cacheDirectory, 'reports', 'cache-manifest.json');
-  const mirrorManifestPath = path.join(mirrorDirectory, 'cache-manifest.json');
   const lockDirectory = resolveCachePath(
     repoRoot,
     toPosixPath(paths.cacheRoot, '.locks', `${categorySlug}-${topicSlug}-${articleSlug}.lock`),
@@ -541,21 +719,15 @@ export async function cacheNote({
   const warnings = [];
 
   await Promise.all(
-    [cacheDirectory, mirrorDirectory, stagingCacheDirectory, stagingMirrorDirectory].map(
-      (location) => assertNoSymlinkPath(repoRoot, location),
-    ),
+    [cacheDirectory, stagingCacheDirectory].map((location) => assertNoSymlinkPath(repoRoot, location)),
   );
   await Promise.all([
     mkdir(path.dirname(stagingCacheDirectory), { recursive: true }),
-    mkdir(path.dirname(stagingMirrorDirectory), { recursive: true }),
     mkdir(path.dirname(lockDirectory), { recursive: true }),
   ]);
 
   try {
-    await Promise.all([
-      assertNoSymlinkPath(repoRoot, stagingCacheDirectory),
-      assertNoSymlinkPath(repoRoot, stagingMirrorDirectory),
-    ]);
+    await assertNoSymlinkPath(repoRoot, stagingCacheDirectory);
     await assertNoSymlinkPath(repoRoot, lockDirectory);
     lock = await acquireCacheLock(
       lockDirectory,
@@ -565,25 +737,8 @@ export async function cacheNote({
       },
     );
     lockAcquired = true;
-    if (await pathExists(mirrorManifestPath)) {
-      const mirrorManifest = JSON.parse(await readFile(mirrorManifestPath, 'utf8'));
-      if (
-        mirrorManifest.categorySlug !== categorySlug
-        || mirrorManifest.topicSlug !== topicSlug
-      ) {
-        throw new Error(
-          `Article slug ${articleSlug} is already cached for another category or topic; use a unique article slug.`,
-        );
-      }
-    }
-    await Promise.all([
-      mkdir(stagingCacheDirectory),
-      mkdir(stagingMirrorDirectory),
-    ]);
-    await Promise.all([
-      assertNoSymlinkPath(repoRoot, stagingCacheDirectory),
-      assertNoSymlinkPath(repoRoot, stagingMirrorDirectory),
-    ]);
+    await mkdir(stagingCacheDirectory);
+    await assertNoSymlinkPath(repoRoot, stagingCacheDirectory);
     await Promise.all([
       mkdir(sourceDirectory),
       mkdir(originalDirectory, { recursive: true }),
@@ -639,10 +794,7 @@ export async function cacheNote({
       });
       const localPath = toPosixPath(provenanceImageDirectory, filename);
 
-      await Promise.all([
-        writeFile(path.join(originalDirectory, filename), bytes),
-        writeFile(path.join(stagingMirrorDirectory, filename), bytes),
-      ]);
+      await writeFile(path.join(originalDirectory, filename), bytes);
       provenance.images.push({
         index,
         alt: image.alt,
@@ -657,18 +809,11 @@ export async function cacheNote({
       path.join(reportsDirectory, 'provenance.json'),
       `${JSON.stringify(provenance, null, 2)}\n`,
     );
-    await writeFile(
-      path.join(stagingMirrorDirectory, 'cache-manifest.json'),
-      `${JSON.stringify({ categorySlug, topicSlug, articleSlug })}\n`,
-    );
     imageCount = provenance.images.length;
     await lock.assertOwned();
     const backups = await publishDirectories(
       repoRoot,
-      [
-        { staging: stagingCacheDirectory, target: cacheDirectory },
-        { staging: stagingMirrorDirectory, target: mirrorDirectory },
-      ],
+      [{ staging: stagingCacheDirectory, target: cacheDirectory }],
       renameImpl,
     );
     try {
@@ -679,7 +824,7 @@ export async function cacheNote({
           schemaVersion: 1,
           complete: true,
           committedAt: new Date().toISOString(),
-          mirrorPath: paths.cacheImageDir,
+          imageDir: paths.cacheImageDir,
         }, null, 2)}\n`,
       );
     } catch (error) {
@@ -694,10 +839,7 @@ export async function cacheNote({
       }
     }
   } finally {
-    await Promise.all([
-      rm(stagingCacheDirectory, { force: true, recursive: true }),
-      rm(stagingMirrorDirectory, { force: true, recursive: true }),
-    ]);
+    await rm(stagingCacheDirectory, { force: true, recursive: true });
     if (lockAcquired) {
       try {
         const lockWarnings = await lock.release();
@@ -716,6 +858,13 @@ export async function cacheNote({
   };
 }
 
+/**
+ * @brief 缓存有道公开分享笔记（HTML 内容 + share.json 溯源）。
+ * @param {object} params - 参数，含 share 对象及 cacheNote 的其余选项。
+ * @param {object} params.share - 公开分享载荷，须含 shareId、title、rawJson、content。
+ * @returns {Promise<{ cacheDirectory: string, imageCount: number, provenancePath: string, warnings: string[] }>} 同 cacheNote 返回值。
+ * @note 内部固定 imageRedirectPolicy 为 verified-public、maxImageRedirects 为 3；shareId 经 assertShareId 校验。
+ */
 export async function cachePublicShare({ share, ...options }) {
   const shareId = assertShareId(share?.shareId);
   if (
