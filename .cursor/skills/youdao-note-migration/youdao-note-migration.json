@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "cacheRoot": ".tmp",
+  "contentRoot": "content/notes",
+  "imageRoot": "static/images/notes",
+  "branchTemplate": "docs/{category}_{topic}_{article}",
+  "commitTemplate": "docs: 新增 {title} 学习笔记",
+  "approvalUserId": "wunianor"
+}

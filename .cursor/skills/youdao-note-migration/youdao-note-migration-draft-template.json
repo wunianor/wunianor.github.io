@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wunianor.github.io/schemas/youdao-note-migration-draft-template.json",
+  "title": "Youdao note migration draft metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sourceSections",
+    "outputSections",
+    "formatChanges",
+    "contentChanges",
+    "images",
+    "target",
+    "approval"
+  ],
+  "properties": {
+    "sourceSections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "id",
+          "title",
+          "headingPath"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "headingPath": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "outputSections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "sourceSectionRefs",
+          "paragraphs"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          },
+          "sourceSectionRefs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref",
+                "sourceSectionRefs"
+              ],
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+                },
+                "sourceSectionRefs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "formatChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "location",
+          "sourceExcerpt",
+          "reason",
+          "status",
+          "approvalId"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "heading-structure",
+              "emphasis-syntax",
+              "chinese-punctuation",
+              "code-fence-comments",
+              "other-format"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceExcerpt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "blocked"
+            ]
+          },
+          "approvalId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          }
+        }
+      }
+    },
+    "contentChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "reason",
+          "status",
+          "sourceSectionRefs"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mechanical",
+              "structural",
+              "factual",
+              "image"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "blocked"
+            ]
+          },
+          "sourceSectionRefs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "frontMatter": {
+            "type": "boolean",
+            "const": true
+          },
+          "approvalId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "mechanical"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "else": {
+              "required": [
+                "approvalId"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "cachePath",
+          "finalPath",
+          "sourceSectionRef",
+          "decision",
+          "status",
+          "approvalId"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "cachePath": {
+            "type": "string",
+            "pattern": "^\\.tmp/content/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/images/(original|generated)/[^/\\\\]+$"
+          },
+          "finalPath": {
+            "type": "string",
+            "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[^/\\\\]+$"
+          },
+          "sourceSectionRef": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "preserve-original",
+              "markdown-transcription",
+              "redraw-candidate",
+              "alternate-expression",
+              "blocked"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "blocked"
+            ]
+          },
+          "approvalId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          },
+          "expressionForm": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "decision": {
+                  "const": "alternate-expression"
+                }
+              },
+              "required": [
+                "decision"
+              ]
+            },
+            "then": {
+              "required": [
+                "expressionForm"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "expressionForm"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "categorySlug",
+        "topicSlug",
+        "articleSlug",
+        "markdownPath",
+        "imageDir"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "categorySlug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "topicSlug": {
+          "type": "string"
+        },
+        "articleSlug": {
+          "type": "string"
+        },
+        "markdownPath": {
+          "type": "string",
+          "pattern": "^content/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*\\.md$"
+        },
+        "imageDir": {
+          "type": "string",
+          "pattern": "^static/images/notes/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "approvals"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "blocked"
+          ]
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "recordedAt",
+              "confirmedBy",
+              "confirmedAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "approved",
+                  "rejected",
+                  "blocked"
+                ]
+              },
+              "recordedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "confirmedBy": {
+                "type": "string"
+              },
+              "confirmedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
