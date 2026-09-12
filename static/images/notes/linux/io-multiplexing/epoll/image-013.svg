@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 840" width="1320" height="840" role="img" aria-labelledby="title desc">
+  <title id="title">epoll 原理：红黑树、就绪队列与硬件中断</title>
+  <desc id="desc">epoll_create、epoll_ctl、epoll_wait 与内核 rb_tree、就绪队列、网卡驱动中断及 callback 交付路径。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .card-blue { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 1.25; }
+      .card-orange { fill: #fff7ed; stroke: #fed7aa; stroke-width: 1.25; }
+      .card-red { fill: #fef2f2; stroke: #fecaca; stroke-width: 1.25; }
+      text {
+        font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      }
+      .title { fill: #0f172a; font-size: 16px; font-weight: 600; }
+      .label { fill: #334155; font-size: 13px; }
+      .muted { fill: #64748b; font-size: 12px; }
+      .mono { fill: #1e293b; font-size: 12.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .mono-sm { fill: #334155; font-size: 12px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+    </style>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1320" height="840"/>
+
+  <!-- left interrupt rail: stays in the gutter, does not cross cards -->
+  <path d="M 48 768 L 22 768 L 22 64 L 48 64" fill="none" stroke="#dc2626" stroke-width="1.75" marker-end="url(#arrow-red)"/>
+  <rect x="4" y="368" width="18" height="96" rx="6" fill="#dc2626"/>
+  <text x="13" y="392" text-anchor="middle" fill="#ffffff" font-size="11">硬</text>
+  <text x="13" y="410" text-anchor="middle" fill="#ffffff" font-size="11">件</text>
+  <text x="13" y="428" text-anchor="middle" fill="#ffffff" font-size="11">中</text>
+  <text x="13" y="446" text-anchor="middle" fill="#ffffff" font-size="11">断</text>
+
+  <rect class="card-red" x="48" y="20" width="612" height="88" rx="12"/>
+  <text class="title" x="64" y="48">操作系统在硬件层面，怎么知道网卡上有数据？</text>
+  <text class="label" x="64" y="74">路径：网卡驱动 → 硬件中断 → 内核 callback</text>
+  <rect x="496" y="58" width="144" height="30" rx="8" fill="#dc2626"/>
+  <text x="568" y="78" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">硬件中断</text>
+
+  <rect class="card-blue" x="676" y="20" width="596" height="88" rx="12"/>
+  <text class="title" x="696" y="46">epoll 的优势</text>
+  <text class="label" x="696" y="70">1. 检测就绪 O(1)，获取就绪 O(n)</text>
+  <text class="label" x="696" y="90">2. fd、event 没有上限</text>
+  <text class="label" x="980" y="70">3. 返回值 n = 就绪 fd 个数</text>
+  <text class="muted" x="980" y="90">就绪事件在数组里连续存放</text>
+
+  <rect class="card" x="48" y="124" width="400" height="72" rx="12"/>
+  <text class="muted" x="64" y="146">创建 epoll 实例</text>
+  <text class="mono" x="64" y="170">int epoll_create(int size)</text>
+
+  <rect class="card" x="460" y="124" width="432" height="72" rx="12"/>
+  <text class="muted" x="476" y="146">增 / 改 / 删关心的 fd 及其事件</text>
+  <text class="mono" x="476" y="170">epoll_ctl(epfd, op, fd, *event)</text>
+
+  <rect class="card" x="904" y="124" width="368" height="72" rx="12"/>
+  <text class="muted" x="920" y="146">获取已就绪的 fd · *events 为输出型</text>
+  <text class="mono" x="920" y="170">epoll_wait(epfd, *events, max, t)</text>
+
+  <rect class="card" x="48" y="212" width="1224" height="492" rx="16"/>
+  <text class="title" x="68" y="242">内核中的 epoll 模型</text>
+  <text class="muted" x="68" y="264">struct file 经 epoll_ctl 注册进红黑树；就绪后经 callback 进入就绪队列，由 epoll_wait 拷出</text>
+
+  <rect x="68" y="292" width="118" height="50" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.25"/>
+  <text class="muted" x="127" y="312" text-anchor="middle">struct file</text>
+  <text class="mono-sm" x="127" y="330" text-anchor="middle">fd A</text>
+  <rect x="68" y="356" width="118" height="50" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.25"/>
+  <text class="muted" x="127" y="376" text-anchor="middle">struct file</text>
+  <text class="mono-sm" x="127" y="394" text-anchor="middle">fd B</text>
+  <line x1="186" y1="317" x2="228" y2="368" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow-slate)"/>
+  <line x1="186" y1="381" x2="228" y2="380" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow-slate)"/>
+
+  <rect class="card-blue" x="228" y="284" width="360" height="396" rx="12"/>
+  <text class="title" x="408" y="312" text-anchor="middle">rb_tree</text>
+  <text class="muted" x="408" y="332" text-anchor="middle">要监视的 fd 集合</text>
+  <circle cx="408" cy="372" r="18" fill="#1e3a8a"/>
+  <text x="408" y="377" text-anchor="middle" fill="#ffffff" font-size="10">fd</text>
+  <circle cx="352" cy="428" r="16" fill="#2563eb"/>
+  <text x="352" y="433" text-anchor="middle" fill="#ffffff" font-size="10">fd</text>
+  <circle cx="464" cy="428" r="16" fill="#2563eb"/>
+  <text x="464" y="433" text-anchor="middle" fill="#ffffff" font-size="10">fd</text>
+  <line x1="400" y1="388" x2="362" y2="414" stroke="#1d4ed8" stroke-width="1.5"/>
+  <line x1="416" y1="388" x2="454" y2="414" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text class="muted" x="408" y="456" text-anchor="middle">EPOLLIN / EPOLLOUT</text>
+  <rect x="248" y="476" width="320" height="126" rx="8" fill="#ffffff" stroke="#bfdbfe"/>
+  <text class="mono-sm" x="264" y="500">struct rb_node {</text>
+  <text class="mono-sm" x="264" y="520">  int fd;            /* 关心的 fd */</text>
+  <text class="mono-sm" x="264" y="540">  uint32_t event;    /* 关心的事件 */</text>
+  <text class="mono-sm" x="264" y="560">  /* 链接字段 */</text>
+  <text class="mono-sm" x="264" y="580">};</text>
+
+  <rect class="card" x="604" y="284" width="272" height="396" rx="12"/>
+  <text class="title" x="740" y="312" text-anchor="middle">callback()</text>
+  <text class="muted" x="740" y="332" text-anchor="middle">事件就绪时由内核执行</text>
+  <rect x="624" y="352" width="232" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="label" x="740" y="386" text-anchor="middle">1. 向上交付</text>
+  <rect x="624" y="420" width="232" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="label" x="740" y="454" text-anchor="middle">2. 交给 TCP 接收队列</text>
+  <rect x="624" y="488" width="232" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text class="label" x="740" y="522" text-anchor="middle">3. 查 rb_tree（fd + 事件）</text>
+  <rect x="624" y="556" width="232" height="100" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+  <text class="label" x="740" y="592" text-anchor="middle">4. 构建就绪节点</text>
+  <text class="muted" x="740" y="616" text-anchor="middle">插入就绪队列</text>
+  <line x1="876" y1="606" x2="900" y2="606" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <rect class="card-orange" x="892" y="284" width="356" height="396" rx="12"/>
+  <text class="title" x="1068" y="312" text-anchor="middle">ready_queue</text>
+  <text class="muted" x="1068" y="332" text-anchor="middle">已经就绪的 fd 链表</text>
+  <rect x="920" y="352" width="64" height="36" rx="8" fill="#ea580c"/>
+  <rect x="1008" y="352" width="64" height="36" rx="8" fill="#ea580c"/>
+  <rect x="1096" y="352" width="64" height="36" rx="8" fill="#ea580c"/>
+  <rect x="1184" y="352" width="40" height="36" rx="8" fill="#fb923c"/>
+  <text x="952" y="375" text-anchor="middle" fill="#ffffff" font-size="12">fd</text>
+  <text x="1040" y="375" text-anchor="middle" fill="#ffffff" font-size="12">fd</text>
+  <text x="1128" y="375" text-anchor="middle" fill="#ffffff" font-size="12">fd</text>
+  <text x="1204" y="375" text-anchor="middle" fill="#ffffff" font-size="12">…</text>
+  <line x1="984" y1="370" x2="1006" y2="370" stroke="#c2410c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="1072" y1="370" x2="1094" y2="370" stroke="#c2410c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="1160" y1="370" x2="1182" y2="370" stroke="#c2410c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <rect x="912" y="408" width="316" height="160" rx="8" fill="#ffffff" stroke="#fed7aa"/>
+  <text class="mono-sm" x="928" y="436">struct list_node {</text>
+  <text class="mono-sm" x="928" y="460">  int fd;            /* 已就绪 fd */</text>
+  <text class="mono-sm" x="928" y="482">  uint32_t event;    /* 已就绪事件 */</text>
+  <text class="mono-sm" x="928" y="504">};</text>
+  <text class="muted" x="928" y="532">epoll_wait 按返回值 n 连续取走</text>
+
+  <rect class="card-red" x="48" y="720" width="1224" height="96" rx="12"/>
+  <text class="title" x="68" y="754">网卡驱动</text>
+  <text class="label" x="68" y="780">数据到达后通过硬件中断通知内核；callback 再把对应 fd 从 rb_tree 放到 ready_queue</text>
+</svg>
