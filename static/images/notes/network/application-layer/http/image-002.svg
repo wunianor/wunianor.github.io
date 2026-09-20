@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" width="980" height="660" role="img" aria-labelledby="http-request-title http-request-desc">
+  <title id="http-request-title">HTTP request 报文结构</title>
+  <desc id="http-request-desc">HTTP 请求报文由请求行、请求报头、空行与请求正文组成，每行以 \r\n 结尾。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .card-blue { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 1.25; }
+      .card-orange { fill: #fff7ed; stroke: #fed7aa; stroke-width: 1.25; }
+      .card-green { fill: #f0fdf4; stroke: #bbf7d0; stroke-width: 1.25; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 21px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13px; }
+      .note { fill: #475569; font-size: 13px; }
+      .chip-text { fill: #ffffff; font-size: 13px; font-weight: 600; }
+      .mono { fill: #1e293b; font-size: 13.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .mono-muted { fill: #64748b; font-size: 13px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .leader { stroke: #cbd5e1; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="980" height="660"/>
+  <text class="title" x="48" y="52">HTTP request 报文结构</text>
+  <text class="muted" x="48" y="78">一个 http request 最多会包含如下内容</text>
+
+  <!-- 1. 请求行 -->
+  <rect class="card-blue" x="48" y="106" width="580" height="118" rx="12"/>
+  <rect x="68" y="126" width="76" height="28" rx="8" fill="#2563eb"/>
+  <text class="chip-text" x="106" y="145" text-anchor="middle">请求行</text>
+  <text class="mono" x="68" y="184">Method&#160;&#160;URL&#160;&#160;HTTP Version&#160;&#160;\r\n</text>
+  <text class="mono-muted" x="68" y="208">GET&#160;&#160;/index.html?uid=1&#160;&#160;HTTP/1.1&#160;&#160;\r\n</text>
+
+  <!-- 2. 请求报头 -->
+  <rect class="card" x="48" y="240" width="580" height="184" rx="12"/>
+  <rect x="68" y="260" width="90" height="28" rx="8" fill="#0ea5e9"/>
+  <text class="chip-text" x="113" y="279" text-anchor="middle">请求报头</text>
+  <text class="mono" x="68" y="318">Host: www.example.jp:80\r\n</text>
+  <text class="mono" x="68" y="342">User-Agent: Mozilla/5.0\r\n</text>
+  <text class="mono" x="68" y="366">Key: Value\r\n</text>
+  <text class="mono-muted" x="68" y="390">……</text>
+  <text class="mono" x="68" y="412">Content-Length: XX\r\n</text>
+
+  <!-- 3. 空行 -->
+  <rect class="card-orange" x="48" y="440" width="580" height="66" rx="12"/>
+  <rect x="68" y="459" width="64" height="28" rx="8" fill="#ea580c"/>
+  <text class="chip-text" x="100" y="478" text-anchor="middle">空行</text>
+  <text class="mono" x="180" y="480">\r\n</text>
+
+  <!-- 4. 请求正文 -->
+  <rect class="card-green" x="48" y="522" width="580" height="110" rx="12"/>
+  <rect x="68" y="542" width="90" height="28" rx="8" fill="#16a34a"/>
+  <text class="chip-text" x="113" y="561" text-anchor="middle">请求正文</text>
+  <text class="note" x="68" y="602">要上传的内容，可以为空！</text>
+
+  <!-- 右侧说明 -->
+  <path class="leader" d="M 628 165 L 668 165"/>
+  <text class="note" x="678" y="169">请求方式 + URL + HTTP Version，</text>
+  <text class="note" x="678" y="187">以 \r\n 结尾</text>
+
+  <path class="leader" d="M 628 332 L 668 332"/>
+  <text class="note" x="678" y="336">单行或多行 key:value，</text>
+  <text class="note" x="678" y="354">每行以 \r\n 结尾</text>
+
+  <path class="leader" d="M 628 473 L 668 473"/>
+  <text class="note" x="678" y="477">空行用于分隔报头与正文</text>
+
+  <path class="leader" d="M 628 577 L 668 577"/>
+  <text class="note" x="678" y="581">GET 提交的内容在 URL 中，</text>
+  <text class="note" x="678" y="599">POST 提交的内容在正文中</text>
+</svg>

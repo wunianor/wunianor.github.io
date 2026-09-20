@@ -3,3 +3,6 @@ static/images/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 static/images/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
 static/images/**/*.gif filter=lfs diff=lfs merge=lfs -text
 static/images/**/*.webp filter=lfs diff=lfs merge=lfs -text
+
+# 笔记与文档默认使用 LF，避免 core.autocrlf=true 在检出时把 Markdown 写回 CRLF
+*.md text eol=lf

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" width="980" height="660" role="img" aria-labelledby="http-response-title http-response-desc">
+  <title id="http-response-title">HTTP response 报文结构</title>
+  <desc id="http-response-desc">HTTP 响应报文由状态行、响应报头、空行与响应正文组成，每行以 \r\n 结尾。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .card-blue { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 1.25; }
+      .card-orange { fill: #fff7ed; stroke: #fed7aa; stroke-width: 1.25; }
+      .card-green { fill: #f0fdf4; stroke: #bbf7d0; stroke-width: 1.25; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 21px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13px; }
+      .note { fill: #475569; font-size: 13px; }
+      .chip-text { fill: #ffffff; font-size: 13px; font-weight: 600; }
+      .mono { fill: #1e293b; font-size: 13.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .mono-muted { fill: #64748b; font-size: 13px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .leader { stroke: #cbd5e1; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="980" height="660"/>
+  <text class="title" x="48" y="52">HTTP response 报文结构</text>
+  <text class="muted" x="48" y="78">一个 http response 最多会包含如下内容</text>
+
+  <!-- 1. 状态行 -->
+  <rect class="card-blue" x="48" y="106" width="580" height="118" rx="12"/>
+  <rect x="68" y="126" width="76" height="28" rx="8" fill="#2563eb"/>
+  <text class="chip-text" x="106" y="145" text-anchor="middle">状态行</text>
+  <text class="mono" x="68" y="184">HTTP Version&#160;&#160;状态码&#160;&#160;状态码描述&#160;&#160;\r\n</text>
+  <text class="mono-muted" x="68" y="208">HTTP/1.1&#160;&#160;200&#160;&#160;OK&#160;&#160;\r\n</text>
+
+  <!-- 2. 响应报头 -->
+  <rect class="card" x="48" y="240" width="580" height="184" rx="12"/>
+  <rect x="68" y="260" width="90" height="28" rx="8" fill="#0ea5e9"/>
+  <text class="chip-text" x="113" y="279" text-anchor="middle">响应报头</text>
+  <text class="mono" x="68" y="318">Content-Type: text/html\r\n</text>
+  <text class="mono" x="68" y="342">Set-Cookie: sessionid=XXXXXX; Path=/\r\n</text>
+  <text class="mono" x="68" y="366">Location: /index.html\r\n</text>
+  <text class="mono-muted" x="68" y="390">……</text>
+  <text class="mono" x="68" y="412">Content-Length: XX\r\n</text>
+
+  <!-- 3. 空行 -->
+  <rect class="card-orange" x="48" y="440" width="580" height="66" rx="12"/>
+  <rect x="68" y="459" width="64" height="28" rx="8" fill="#ea580c"/>
+  <text class="chip-text" x="100" y="478" text-anchor="middle">空行</text>
+  <text class="mono" x="180" y="480">\r\n</text>
+
+  <!-- 4. 响应正文 -->
+  <rect class="card-green" x="48" y="522" width="580" height="110" rx="12"/>
+  <rect x="68" y="542" width="90" height="28" rx="8" fill="#16a34a"/>
+  <text class="chip-text" x="113" y="561" text-anchor="middle">响应正文</text>
+  <text class="note" x="68" y="602">html / css / js / 图片 ……</text>
+
+  <!-- 右侧说明 -->
+  <path class="leader" d="M 628 165 L 668 165"/>
+  <text class="note" x="678" y="169">HTTP Version + 状态码 + 状态码描述，</text>
+  <text class="note" x="678" y="187">以 \r\n 结尾</text>
+
+  <path class="leader" d="M 628 332 L 668 332"/>
+  <text class="note" x="678" y="336">单行或多行 key:value，</text>
+  <text class="note" x="678" y="354">每行以 \r\n 结尾</text>
+
+  <path class="leader" d="M 628 473 L 668 473"/>
+  <text class="note" x="678" y="477">空行用于分隔报头与正文</text>
+
+  <path class="leader" d="M 628 577 L 668 577"/>
+  <text class="note" x="678" y="581">响应数据的类型由</text>
+  <text class="note" x="678" y="599">Content-Type 指定</text>
+</svg>
