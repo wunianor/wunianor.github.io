@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" width="980" height="620" role="img" aria-labelledby="http-cookie-title http-cookie-desc">
+  <title id="http-cookie-title">Session 与 Cookie 交互原理</title>
+  <desc id="http-cookie-desc">① 浏览器提交账号密码；② 服务器只在登录这一次查数据库校验，通过后生成随机 session id，把会话状态以该 id 为键存进服务端存储（不含密码），并用 Set-Cookie 下发；③ 浏览器后续请求自动携带该 Cookie，服务器凭 id 命中会话后放行。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .card-orange { fill: #fff7ed; stroke: #fed7aa; stroke-width: 1.25; }
+      .inner { fill: #f1f5f9; stroke: #e2e8f0; stroke-width: 1.25; }
+      .inner-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.25; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 21px; font-weight: 600; }
+      .label { fill: #334155; font-size: 15px; font-weight: 600; }
+      .note { fill: #475569; font-size: 13px; }
+      .muted { fill: #64748b; font-size: 12px; }
+      .mono { fill: #1e293b; font-size: 13px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .step-text { fill: #ffffff; font-size: 12px; font-weight: 700; }
+    </style>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="980" height="620"/>
+  <text class="title" x="48" y="52">Session 与 Cookie 交互原理</text>
+
+  <!-- 浏览器 -->
+  <rect class="card" x="48" y="96" width="250" height="310" rx="12"/>
+  <text class="label" x="173" y="130" text-anchor="middle">浏览器</text>
+  <rect class="inner" x="64" y="152" width="218" height="150" rx="10"/>
+  <text class="note" x="173" y="178" text-anchor="middle">cookie（内存级 / 文件级）</text>
+  <rect class="inner-box" x="92" y="196" width="162" height="72" rx="8"/>
+  <text class="mono" x="173" y="224" text-anchor="middle">sessionid=XXXXXX</text>
+  <text class="muted" x="173" y="248" text-anchor="middle">（只拿到这个 id）</text>
+  <text class="muted" x="173" y="336" text-anchor="middle">后续每次请求都会</text>
+  <text class="muted" x="173" y="356" text-anchor="middle">自动携带 Cookie 字段</text>
+
+  <!-- 服务器 -->
+  <rect class="card" x="682" y="96" width="250" height="310" rx="12"/>
+  <text class="label" x="807" y="130" text-anchor="middle">服务器</text>
+  <rect class="inner" x="698" y="152" width="218" height="150" rx="10"/>
+  <text class="note" x="807" y="178" text-anchor="middle">会话存储（Redis 集群 / 文件）</text>
+  <rect class="inner-box" x="726" y="196" width="162" height="72" rx="8"/>
+  <text class="mono" x="807" y="224" text-anchor="middle">sessionid: 用户标识</text>
+  <text class="muted" x="807" y="248" text-anchor="middle">（不含密码）</text>
+  <text class="muted" x="807" y="336" text-anchor="middle">登录时才查数据库校验</text>
+  <text class="muted" x="807" y="356" text-anchor="middle">（之后凭 session id 命中会话）</text>
+
+  <!-- 1. 登录请求 -->
+  <path d="M 300 200 L 680 200" fill="none" stroke="#475569" stroke-width="1.75" marker-end="url(#arrow-slate)"/>
+  <text class="mono" x="490" y="188" text-anchor="middle">username=XXX&amp;password=YYYY</text>
+  <circle cx="330" cy="180" r="10" fill="#475569"/>
+  <text class="step-text" x="330" y="184" text-anchor="middle">1</text>
+
+  <!-- 2. Set-Cookie -->
+  <path d="M 680 300 L 300 300" fill="none" stroke="#2563eb" stroke-width="1.75" marker-end="url(#arrow-blue)"/>
+  <text class="mono" x="490" y="288" text-anchor="middle" fill="#2563eb">Set-Cookie: sessionid=XXXXXX; Path=/</text>
+  <text class="muted" x="490" y="322" text-anchor="middle">session id 由服务器端随机生成，键即 Cookie 值</text>
+  <circle cx="650" cy="280" r="10" fill="#2563eb"/>
+  <text class="step-text" x="650" y="284" text-anchor="middle">2</text>
+
+  <!-- 3. Cookie 回访 -->
+  <path d="M 300 388 L 680 388" fill="none" stroke="#475569" stroke-width="1.75" marker-end="url(#arrow-slate)"/>
+  <text class="mono" x="490" y="376" text-anchor="middle">Cookie: sessionid=XXXXXX</text>
+  <circle cx="330" cy="368" r="10" fill="#475569"/>
+  <text class="step-text" x="330" y="372" text-anchor="middle">3</text>
+
+  <!-- 校验结果 -->
+  <rect class="card-orange" x="48" y="446" width="884" height="140" rx="12"/>
+  <text class="label" x="72" y="480">服务器校验 Cookie：</text>
+  <text class="note" x="72" y="510">正确 → 可以直接访问资源；过期或错误 → 需要重新登录验证。</text>
+  <text class="note" x="72" y="536">客户端只拿到一个无意义的 id，敏感信息留在服务端；但 id 被窃取后依旧会被冒用。</text>
+  <text class="note" x="72" y="562">真实实现还会给该 Cookie 加 HttpOnly、Secure、SameSite 等属性，降低被 XSS 窃取与 CSRF 的风险。</text>
+</svg>

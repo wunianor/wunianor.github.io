@@ -67,6 +67,7 @@ endLevel = 4
 cpp = "C++"
 go = "Go"
 linux = "Linux"
+network = "网络"
 mysql = "MySQL"
 
 [params.blog.categories]
