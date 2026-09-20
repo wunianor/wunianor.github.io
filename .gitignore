@@ -31,3 +31,6 @@ prompt/
 
 # Migration skill temporary cache
 .tmp/
+
+# WorkBuddy 工作记忆与本地配置（不提交）
+.workbuddy/
