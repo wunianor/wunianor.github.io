@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 440" width="940" height="440" role="img" aria-labelledby="udp-header-title udp-header-desc">
+  <title id="udp-header-title">UDP 报文格式</title>
+  <desc id="udp-header-desc">UDP 报文由 8 字节定长首部和可变长的数据组成，首部含 16 位源端口号、16 位目的端口号、16 位 UDP 长度与 16 位 UDP 检验和四个字段。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .grid-blue { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      .divider { stroke: #93c5fd; stroke-width: 1.25; }
+      .dim-tick { stroke: #1d4ed8; stroke-width: 1.5; }
+      .dim-arrow { stroke: #1d4ed8; stroke-width: 1.5; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .ruler { fill: #475569; font-size: 13.5px; font-weight: 600; }
+      .cell { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .dim { fill: #1d4ed8; font-size: 13.5px; font-weight: 600; }
+      .note { fill: #334155; font-size: 14px; }
+      .dot { fill: #94a3b8; }
+    </style>
+    <marker id="dim-head" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="940" height="440"/>
+  <text class="title" x="48" y="52">UDP 报文格式</text>
+  <text class="muted" x="48" y="78">首部定长 8 字节，其后是可变长的数据</text>
+
+  <text class="ruler" x="60" y="116">0</text>
+  <text class="ruler" x="420" y="116" text-anchor="middle">15 16</text>
+  <text class="ruler" x="780" y="116" text-anchor="end">31</text>
+  <path d="M 60 124 L 780 124" stroke="#94a3b8" stroke-width="1"/>
+
+  <rect class="grid-blue" x="60" y="132" width="720" height="52"/>
+  <text class="cell" x="240" y="165" text-anchor="middle">16位源端口号</text>
+  <text class="cell" x="600" y="165" text-anchor="middle">16位目的端口号</text>
+  <rect class="grid-blue" x="60" y="184" width="720" height="52"/>
+  <text class="cell" x="240" y="217" text-anchor="middle">16位UDP长度</text>
+  <text class="cell" x="600" y="217" text-anchor="middle">16位UDP检验和</text>
+  <line class="divider" x1="420" y1="132" x2="420" y2="236"/>
+
+  <line class="dim-tick" x1="784" y1="132" x2="842" y2="132"/>
+  <line class="dim-tick" x1="784" y1="236" x2="842" y2="236"/>
+  <path class="dim-arrow" d="M 812 168 L 812 132" marker-end="url(#dim-head)"/>
+  <path class="dim-arrow" d="M 812 200 L 812 236" marker-end="url(#dim-head)"/>
+  <text class="dim" x="812" y="188" text-anchor="middle">8字节</text>
+
+  <path d="M 60 236 H 780 V 256 L 792 276 V 296 H 48 V 276 L 60 256 Z" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.4"/>
+  <text class="cell" x="420" y="272" text-anchor="middle">数据（如果有）</text>
+
+  <circle class="dot" cx="64" cy="336" r="3.5"/>
+  <text class="note" x="80" y="341">16位UDP长度，表示整个数据报（UDP首部+UDP数据）的最大长度；</text>
+  <circle class="dot" cx="64" cy="366" r="3.5"/>
+  <text class="note" x="80" y="371">如果检验和出错，就会直接丢弃。</text>
+</svg>

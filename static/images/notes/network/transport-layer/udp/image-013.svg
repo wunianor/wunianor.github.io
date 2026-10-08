@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700" role="img" aria-labelledby="udp-kernel-title udp-kernel-desc">
+  <title id="udp-kernel-title">UDP 内核数据结构</title>
+  <desc id="udp-kernel-desc">UDP 首部四个 16 位字段在内核中由 struct udphdr 描述，报文由 sk_buff 承载，其 head、data、tail、end 四个指针划分缓冲区。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .grid-blue { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      .grid-amber { fill: #fffbeb; stroke: #fcd34d; stroke-width: 1.25; }
+      .seg-headroom { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.25; }
+      .seg-data { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.25; }
+      .seg-tailroom { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 6 4; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .card-title { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .ruler { fill: #475569; font-size: 13px; font-weight: 600; }
+      .cell { fill: #0f172a; font-size: 14px; font-weight: 600; }
+      .note { fill: #475569; font-size: 13.5px; }
+      .mono { fill: #1e293b; font-size: 13.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .mono-note { fill: #94a3b8; font-size: 12.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .pin { fill: #1d4ed8; font-size: 13px; font-weight: 600; }
+      .pin-end { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .leader { stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1000" height="700"/>
+  <text class="title" x="44" y="52">UDP 内核数据结构</text>
+  <text class="muted" x="44" y="78">UDP 首部字段、内核里的结构体，以及承载报文的 sk_buff 缓冲区</text>
+
+  <!-- 卡 A：UDP 首部字段 -->
+  <rect class="card" x="44" y="96" width="440" height="200" rx="12"/>
+  <text class="card-title" x="68" y="128">UDP 首部（8 字节）</text>
+  <text class="ruler" x="76" y="158">0</text>
+  <text class="ruler" x="258" y="158" text-anchor="middle">15 16</text>
+  <text class="ruler" x="440" y="158" text-anchor="end">31</text>
+  <path d="M 76 164 L 440 164" stroke="#94a3b8" stroke-width="1"/>
+  <rect class="grid-blue" x="76" y="168" width="364" height="32"/>
+  <text class="cell" x="167" y="189" text-anchor="middle">16位源端口号</text>
+  <text class="cell" x="349" y="189" text-anchor="middle">16位目的端口号</text>
+  <rect class="grid-blue" x="76" y="200" width="364" height="32"/>
+  <text class="cell" x="167" y="221" text-anchor="middle">16位UDP长度</text>
+  <text class="cell" x="349" y="221" text-anchor="middle">16位UDP检验和</text>
+  <line x1="258" y1="168" x2="258" y2="232" stroke="#93c5fd" stroke-width="1.25"/>
+  <rect class="grid-amber" x="76" y="232" width="364" height="34"/>
+  <text class="cell" x="258" y="255" text-anchor="middle">数据（如果有）</text>
+  <text class="note" x="76" y="284">读走前 8 个字节，剩下的就是有效载荷</text>
+
+  <!-- 卡 B：struct udphdr -->
+  <rect class="card" x="508" y="96" width="448" height="200" rx="12"/>
+  <text class="card-title" x="532" y="126">struct udphdr</text>
+  <text class="muted" x="532" y="146">内核用这个结构体描述 UDP 首部，字段都是 16 位</text>
+  <text class="mono" x="532" y="176">struct udphdr</text>
+  <text class="mono" x="532" y="195">{</text>
+  <text class="mono" x="548" y="214">__be16  source; <tspan class="mono-note">// 16位源端口号</tspan></text>
+  <text class="mono" x="548" y="233">__be16  dest;   <tspan class="mono-note">// 16位目的端口号</tspan></text>
+  <text class="mono" x="548" y="252">__be16  len;    <tspan class="mono-note">// 16位UDP长度</tspan></text>
+  <text class="mono" x="548" y="271">__sum16 check;  <tspan class="mono-note">// 16位UDP检验和</tspan></text>
+  <text class="mono" x="532" y="290">};</text>
+
+  <!-- 卡 C：sk_buff 与缓冲区 -->
+  <rect class="card" x="44" y="320" width="912" height="340" rx="12"/>
+  <text class="card-title" x="68" y="354">sk_buff 与报文缓冲区</text>
+  <text class="mono" x="68" y="386">struct sk_buff</text>
+  <text class="mono" x="68" y="405">{</text>
+  <text class="mono" x="84" y="424">unsigned char *head; <tspan class="mono-note">// 分配的内存起始</tspan></text>
+  <text class="mono" x="84" y="443">unsigned char *data; <tspan class="mono-note">// 有效数据的起始</tspan></text>
+  <text class="mono" x="84" y="462">sk_buff_data_t tail; <tspan class="mono-note">// 有效数据的末尾</tspan></text>
+  <text class="mono" x="84" y="481">sk_buff_data_t end;  <tspan class="mono-note">// 分配的内存末尾</tspan></text>
+  <text class="mono-note" x="84" y="500">...</text>
+  <text class="mono" x="68" y="519">}</text>
+
+  <text class="pin" x="486" y="404">head</text>
+  <text class="pin" x="600" y="404">data</text>
+  <text class="pin-end" x="836" y="404">tail</text>
+  <text class="pin-end" x="930" y="404" text-anchor="end">end</text>
+
+  <rect class="seg-headroom" x="486" y="416" width="114" height="58"/>
+  <rect class="seg-data" x="600" y="416" width="236" height="58"/>
+  <rect class="seg-tailroom" x="836" y="416" width="100" height="58"/>
+  <text class="note" x="543" y="451" text-anchor="middle">headroom</text>
+  <text class="cell" x="718" y="451" text-anchor="middle">数据</text>
+  <text class="note" x="886" y="451" text-anchor="middle">tailroom</text>
+
+  <path class="leader" d="M 486 410 L 486 416"/>
+  <path class="leader" d="M 600 410 L 600 416"/>
+  <path class="leader" d="M 836 410 L 836 416"/>
+  <path class="leader" d="M 936 410 L 936 416"/>
+
+  <text class="note" x="486" y="512">加协议头时 data 前移（往 headroom 里写），剥协议头或取数据时 data 后移。</text>
+  <text class="note" x="486" y="536">一个 sk_buff 对应一个报文</text>
+  <text class="note" x="68" y="570">64 位内核里 head / data 是指针，tail / end 是相对 head 的偏移量（sk_buff_data_t）。</text>
+  <text class="note" x="68" y="592">首部字段是网络字节序，赋值前先用 htons() 转换，例如：</text>
+  <text class="mono-note" x="84" y="614">struct udphdr h;  h.source = htons(1234);  h.dest = htons(8888);  h......</text>
+  <text class="note" x="68" y="636">end 之后还有 skb_shared_info 区域，收发过程中由内核维护。</text>
+</svg>
