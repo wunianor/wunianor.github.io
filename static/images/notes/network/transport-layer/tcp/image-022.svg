@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 510" width="1060" height="510" role="img" aria-labelledby="tcp022-title tcp022-desc">
+  <title id="tcp022-title">数据丢包与应答丢包对比</title>
+  <desc id="tcp022-desc">左栏画数据报文在途中丢失、主机A 超时后重发同一段数据；右栏画确认应答在回程丢失、主机A 同样超时重发，主机B 收到重复数据后靠序号识别并丢弃。两栏的报文线都自上而下带一点下斜，表示报文在时间上的先后。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .axis { stroke: #cbd5e1; stroke-width: 1.5; }
+      .data-line { stroke: #1d4ed8; stroke-width: 1.8; fill: none; }
+      .ack-line { stroke: #b45309; stroke-width: 1.8; fill: none; }
+      .time-line { stroke: #64748b; stroke-width: 1.5; fill: none; }
+      .interval { stroke: #1d4ed8; stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+      .loss { stroke: #b45309; stroke-width: 2.6; stroke-linecap: round; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .panel-title { fill: #0f172a; font-size: 16px; font-weight: 600; }
+      .host { fill: #334155; font-size: 14px; font-weight: 600; }
+      .data-label { fill: #1d4ed8; font-size: 13.5px; font-weight: 600; }
+      .ack-label { fill: #b45309; font-size: 13.5px; font-weight: 600; }
+      .time-label { fill: #64748b; font-size: 13.5px; font-weight: 600; }
+      .interval-label { fill: #1d4ed8; font-size: 13.5px; font-weight: 600; }
+      .loss-text { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .arrive-text { fill: #64748b; font-size: 13px; font-weight: 600; }
+      .caption { fill: #334155; font-size: 14px; }
+    </style>
+    <marker id="tcp022-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8" stroke="none"/>
+    </marker>
+    <marker id="tcp022-amber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+    <marker id="tcp022-slate" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#64748b" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1060" height="510"/>
+  <text class="title" x="44" y="52">数据丢包与应答丢包</text>
+  <text class="muted" x="44" y="80">超时重传的其中两种触发场景：数据丢包和应答丢包</text>
+
+  <!-- ============ 左栏：数据丢包 ============ -->
+  <rect class="panel" x="30" y="104" width="490" height="372" rx="12"/>
+  <rect x="46" y="126" width="4" height="18" rx="2" fill="#1d4ed8"/>
+  <text class="panel-title" x="60" y="141">数据丢包</text>
+
+  <text class="host" x="168" y="178" text-anchor="middle">主机A</text>
+  <text class="host" x="408" y="178" text-anchor="middle">主机B</text>
+  <line class="axis" x1="168" y1="190" x2="168" y2="458"/>
+  <line class="axis" x1="408" y1="190" x2="408" y2="458"/>
+
+  <path class="time-line" d="M 78 212 L 78 424" marker-end="url(#tcp022-slate)"/>
+  <text class="time-label" x="60" y="318" text-anchor="middle" transform="rotate(-90 60 318)">时间轴</text>
+
+  <path class="interval" d="M 123 282 L 123 212" marker-end="url(#tcp022-blue)"/>
+  <path class="interval" d="M 123 282 L 123 352" marker-end="url(#tcp022-blue)"/>
+  <text class="interval-label" x="108" y="282" text-anchor="middle" transform="rotate(-90 108 282)">特定的时间间隔</text>
+
+  <path class="data-line" d="M 168 212 L 344 231" marker-end="url(#tcp022-blue)"/>
+  <text class="data-label" x="256" y="201" text-anchor="middle">数据（1 ~ 1000）</text>
+  <path class="loss" d="M 357 224 L 375 242 M 375 224 L 357 242"/>
+  <text class="loss-text" x="366" y="258" text-anchor="middle">丢包</text>
+
+  <path class="data-line" d="M 168 352 L 408 378" marker-end="url(#tcp022-blue)"/>
+  <text class="data-label" x="288" y="345" text-anchor="middle">数据（1 ~ 1000）（重发）</text>
+
+  <path class="ack-line" d="M 408 422 L 168 448" marker-end="url(#tcp022-amber)"/>
+  <text class="ack-label" x="288" y="415" text-anchor="middle">确认应答（下一个是1001）</text>
+
+  <!-- ============ 右栏：应答丢包 ============ -->
+  <rect class="panel" x="540" y="104" width="490" height="372" rx="12"/>
+  <rect x="556" y="126" width="4" height="18" rx="2" fill="#b45309"/>
+  <text class="panel-title" x="570" y="141">应答丢包</text>
+
+  <text class="host" x="678" y="178" text-anchor="middle">主机A</text>
+  <text class="host" x="918" y="178" text-anchor="middle">主机B</text>
+  <line class="axis" x1="678" y1="190" x2="678" y2="458"/>
+  <line class="axis" x1="918" y1="190" x2="918" y2="458"/>
+
+  <path class="time-line" d="M 588 212 L 588 424" marker-end="url(#tcp022-slate)"/>
+  <text class="time-label" x="570" y="318" text-anchor="middle" transform="rotate(-90 570 318)">时间轴</text>
+
+  <path class="interval" d="M 633 282 L 633 212" marker-end="url(#tcp022-blue)"/>
+  <path class="interval" d="M 633 282 L 633 352" marker-end="url(#tcp022-blue)"/>
+  <text class="interval-label" x="618" y="282" text-anchor="middle" transform="rotate(-90 618 282)">特定的时间间隔</text>
+
+  <path class="data-line" d="M 678 212 L 918 238" marker-end="url(#tcp022-blue)"/>
+  <text class="data-label" x="798" y="205" text-anchor="middle">数据（1 ~ 1000）</text>
+  <text class="arrive-text" x="866" y="252" text-anchor="middle">到达</text>
+
+  <path class="ack-line" d="M 918 282 L 742 301" marker-end="url(#tcp022-amber)"/>
+  <text class="ack-label" x="798" y="275" text-anchor="middle">确认应答（下一个是1001）</text>
+  <path class="loss" d="M 711 293 L 729 311 M 729 293 L 711 311"/>
+  <text class="loss-text" x="720" y="324" text-anchor="middle">丢包</text>
+
+  <path class="data-line" d="M 678 352 L 918 378" marker-end="url(#tcp022-blue)"/>
+  <text class="data-label" x="798" y="345" text-anchor="middle">数据（1 ~ 1000）（重发）</text>
+
+  <path class="ack-line" d="M 918 422 L 678 448" marker-end="url(#tcp022-amber)"/>
+  <text class="ack-label" x="798" y="415" text-anchor="middle">确认应答（下一个是1001）</text>
+
+</svg>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 930" width="1120" height="930" role="img" aria-labelledby="tcp-fastretx-title tcp-fastretx-desc">
+  <title id="tcp-fastretx-title">快重传机制</title>
+  <desc id="tcp-fastretx-desc">1001 到 2000 的数据段丢失后，主机B 对之后每一段数据都回送同一个确认序号 1001，主机A 收到三次重复确认便立即重发这一段，而不必等到超时；补齐后确认序号继续向前推进。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .host { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.25; }
+      .axis { stroke: #94a3b8; stroke-width: 1.5; }
+      .data-line { stroke: #2563eb; stroke-width: 2; fill: none; }
+      .ack-line { stroke: #b45309; stroke-width: 2; fill: none; }
+      .retx-line { stroke: #dc2626; stroke-width: 2.2; fill: none; stroke-dasharray: 7 4; }
+      .lost-mark { stroke: #b45309; stroke-width: 3; stroke-linecap: round; fill: none; }
+      .brace { stroke: #475569; stroke-width: 1.4; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .host-label { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .col-head { fill: #475569; font-size: 13.5px; font-weight: 600; }
+      .lbl-data { fill: #1d4ed8; font-size: 13px; font-weight: 600; }
+      .lbl-ack { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .lbl-retx { fill: #dc2626; font-size: 13px; font-weight: 600; }
+      .lost { fill: #b45309; font-size: 12.5px; font-weight: 600; }
+      .note { fill: #64748b; font-size: 12.5px; }
+      .brace-lbl { fill: #475569; font-size: 12.5px; font-weight: 600; }
+      .caption { fill: #334155; font-size: 14px; }
+    </style>
+    <marker id="fr-data" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="fr-ack" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309"/>
+    </marker>
+    <marker id="fr-retx" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#dc2626"/>
+    </marker>
+    <marker id="fr-time" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1120" height="930"/>
+  <text class="title" x="44" y="46">快重传：三次重复确认就重发</text>
+  <text class="muted" x="44" y="72">每收到一段数据就回一个应答；1001~2000 丢失后连出 3 个重复应答，收到第 3 个就立即重发，不必等到超时</text>
+
+  <rect class="host" x="190" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="250" y="121" text-anchor="middle">主机A</text>
+  <rect class="host" x="460" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="520" y="121" text-anchor="middle">主机B</text>
+  <line class="axis" x1="250" y1="148" x2="250" y2="820"/>
+  <line class="axis" x1="520" y1="148" x2="520" y2="820"/>
+
+  <text class="col-head" x="238" y="164" text-anchor="end">数据</text>
+  <text class="col-head" x="536" y="164">确认应答</text>
+
+  <!-- 1~1000 到达并应答 -->
+  <path class="data-line" d="M 250 176 L 516 194" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="182" text-anchor="end">1~1000</text>
+  <path class="ack-line" d="M 520 204 L 254 222" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="210">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 1001~2000 丢失 -->
+  <path class="data-line" d="M 250 232 L 470 248" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="238" text-anchor="end">1001~2000</text>
+  <path class="lost-mark" d="M 486 242 L 502 258 M 502 242 L 486 258"/>
+  <text class="lost" x="494" y="274" text-anchor="middle">丢包</text>
+
+  <!-- 2001~3000：重复应答 1001（第 1 个） -->
+  <path class="data-line" d="M 250 288 L 516 306" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="294" text-anchor="end">2001~3000</text>
+  <path class="ack-line" d="M 520 316 L 254 334" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="322">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 3001~4000：重复应答 1001（第 2 个） -->
+  <path class="data-line" d="M 250 344 L 516 362" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="350" text-anchor="end">3001~4000</text>
+  <path class="ack-line" d="M 520 372 L 254 390" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="378">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 4001~5000：重复应答 1001（第 3 个）→ 触发快重传 -->
+  <path class="data-line" d="M 250 400 L 516 418" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="406" text-anchor="end">4001~5000</text>
+  <path class="ack-line" d="M 520 428 L 254 446" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="434">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 三次重复确认的括号与说明 -->
+  <path class="brace" d="M 838 316 Q 852 316 852 381 Q 852 446 838 446"/>
+  <text class="brace-lbl" x="864" y="366">3 次重复的确认应答：1001</text>
+  <text class="brace-lbl" x="864" y="390">收到 3 次重复确认，</text>
+  <text class="brace-lbl" x="864" y="414">立即重发</text>
+
+  <!-- 立即重发 -->
+  <path class="retx-line" d="M 250 484 L 516 502" marker-end="url(#fr-retx)"/>
+  <text class="lbl-retx" x="238" y="490" text-anchor="end">1001~2000（重发）</text>
+  <path class="ack-line" d="M 520 512 L 254 530" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="518">下一个是5001（接收1~5000字节的数据）</text>
+
+  <!-- 补齐后继续正常发送 -->
+  <path class="data-line" d="M 250 540 L 516 558" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="546" text-anchor="end">5001~6000</text>
+  <path class="ack-line" d="M 520 568 L 254 586" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="574">下一个是6001（接收1~6000字节的数据）</text>
+
+  <path class="data-line" d="M 250 596 L 516 614" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="602" text-anchor="end">6001~7000</text>
+  <path class="ack-line" d="M 520 624 L 254 642" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="630">下一个是7001（接收1~7000字节的数据）</text>
+
+  <path class="data-line" d="M 250 652 L 516 670" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="658" text-anchor="end">7001~8000</text>
+  <path class="ack-line" d="M 520 680 L 254 698" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="686">下一个是8001（接收1~8000字节的数据）</text>
+
+  <path class="data-line" d="M 250 708 L 516 726" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="714" text-anchor="end">8001~9000</text>
+  <path class="ack-line" d="M 520 736 L 254 754" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="742">下一个是9001（接收1~9000字节的数据）</text>
+
+  <path class="data-line" d="M 250 764 L 516 782" marker-end="url(#fr-data)"/>
+  <text class="lbl-data" x="238" y="770" text-anchor="end">9001~10000</text>
+  <path class="ack-line" d="M 520 792 L 254 810" marker-end="url(#fr-ack)"/>
+  <text class="lbl-ack" x="536" y="798">下一个是10001（接收1~10000字节的数据）</text>
+
+  <path d="M 250 820 L 250 838" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#fr-time)"/>
+  <text class="note" x="238" y="834" text-anchor="end">时间</text>
+
+  <!-- 图注 -->
+  <text class="caption" x="44" y="874">快重传：收到 3 个相同的确认序号，就立刻重发对应的数据段，</text>
+  <text class="caption" x="44" y="898">不用等到超时，从而更早地补上丢失的数据。</text>
+</svg>

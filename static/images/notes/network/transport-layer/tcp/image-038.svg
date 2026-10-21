@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 680" width="1300" height="680" role="img" aria-labelledby="tcp-dataloss-title tcp-dataloss-desc">
+  <title id="tcp-dataloss-title">情况二：发送的数据丢包</title>
+  <desc id="tcp-dataloss-desc">主机A 每发一段数据，主机B 收到后立即回一个应答；1001 到 2000 这一段在途中丢失，之后到达的数据顺序不连续，主机B 无法向上交付，对每一段都回答同一个确认序号 1001，连出三个重复应答；主机A 据此重发丢失的 1001~2000，补齐后主机B 的确认序号直接跳到 5001。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .callout { fill: #fffbeb; stroke: #fcd34d; stroke-width: 1.25; }
+      .host { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.25; }
+      .axis { stroke: #94a3b8; stroke-width: 1.5; }
+      .data-line { stroke: #2563eb; stroke-width: 2; fill: none; }
+      .ack-line { stroke: #b45309; stroke-width: 2; fill: none; }
+      .retx-line { stroke: #2563eb; stroke-width: 2; stroke-dasharray: 7 4; fill: none; }
+      .lost-mark { stroke: #b45309; stroke-width: 3; stroke-linecap: round; fill: none; }
+      .brace { stroke: #475569; stroke-width: 1.4; fill: none; }
+      .link { stroke: #94a3b8; stroke-width: 1.3; stroke-dasharray: 5 4; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .host-label { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .col-head { fill: #475569; font-size: 13.5px; font-weight: 600; }
+      .lbl-data { fill: #1d4ed8; font-size: 13px; font-weight: 600; }
+      .lbl-ack { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .lost { fill: #b45309; font-size: 12.5px; font-weight: 600; }
+      .note { fill: #64748b; font-size: 12.5px; }
+      .brace-lbl { fill: #475569; font-size: 12.5px; font-weight: 600; }
+      .callout-text { fill: #b45309; font-size: 13.5px; font-weight: 600; }
+    </style>
+    <marker id="dl-data" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="dl-ack" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309"/>
+    </marker>
+    <marker id="dl-time" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8"/>
+    </marker>
+    <marker id="dl-link" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1300" height="680"/>
+  <text class="title" x="44" y="46">情况二：发送的数据丢包</text>
+  <text class="muted" x="44" y="72">主机A 每发一段数据就收到一个应答；1001~2000 丢失后连出 3 个重复应答，A 重发该段，B 的确认序号直接跳到 5001</text>
+
+  <rect class="host" x="260" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="320" y="121" text-anchor="middle">主机A</text>
+  <rect class="host" x="530" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="590" y="121" text-anchor="middle">主机B</text>
+  <line class="axis" x1="320" y1="148" x2="320" y2="620"/>
+  <line class="axis" x1="590" y1="148" x2="590" y2="620"/>
+
+  <text class="col-head" x="308" y="164" text-anchor="end">数据</text>
+  <text class="col-head" x="606" y="164">确认应答</text>
+
+  <!-- 第 1 段：到达并应答 -->
+  <path class="data-line" d="M 320 176 L 576 192" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="182" text-anchor="end">1~1000</text>
+  <path class="ack-line" d="M 590 204 L 324 220" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="210">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 第 2 段：丢失，无应答 -->
+  <path class="data-line" d="M 320 232 L 536 248" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="238" text-anchor="end">1001~2000</text>
+  <path class="lost-mark" d="M 552 242 L 568 258 M 568 242 L 552 258"/>
+  <text class="lost" x="560" y="274" text-anchor="middle">丢包</text>
+
+  <!-- 第 3 段：到达但顺序不连续 → 重复应答 1001（第 1 个） -->
+  <path class="data-line" d="M 320 304 L 576 320" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="310" text-anchor="end">2001~3000</text>
+  <path class="ack-line" d="M 590 332 L 324 348" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="338">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 第 4 段 → 重复应答 1001（第 2 个） -->
+  <path class="data-line" d="M 320 360 L 576 376" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="366" text-anchor="end">3001~4000</text>
+  <path class="ack-line" d="M 590 388 L 324 404" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="394">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 第 5 段 → 重复应答 1001（第 3 个） -->
+  <path class="data-line" d="M 320 416 L 576 432" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="422" text-anchor="end">4001~5000</text>
+  <path class="ack-line" d="M 590 444 L 324 460" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="450">下一个是1001（已接收1~1000字节的数据）</text>
+
+  <!-- 重发丢失的那一段 -->
+  <path class="retx-line" d="M 320 504 L 576 520" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="510" text-anchor="end">1001~2000（重发）</text>
+  <path class="ack-line" d="M 590 532 L 324 548" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="538">下一个是5001（接收1~5000字节的数据）</text>
+
+  <!-- 补齐后继续正常发送 -->
+  <path class="data-line" d="M 320 560 L 576 576" marker-end="url(#dl-data)"/>
+  <text class="lbl-data" x="308" y="566" text-anchor="end">5001~6000</text>
+  <path class="ack-line" d="M 590 588 L 324 604" marker-end="url(#dl-ack)"/>
+  <text class="lbl-ack" x="606" y="594">下一个是6001（接收1~6000字节的数据）</text>
+
+  <path d="M 320 620 L 320 638" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#dl-time)"/>
+  <text class="note" x="308" y="634" text-anchor="end">时间</text>
+
+  <!-- 右侧：三个重复应答的括号 + 说明卡 -->
+  <path class="brace" d="M 876 332 Q 890 332 890 396 Q 890 460 876 460"/>
+  <text class="brace-lbl" x="904" y="384">3 个重复的</text>
+  <text class="brace-lbl" x="904" y="406">确认应答</text>
+
+  <rect class="card" x="904" y="452" width="372" height="92" rx="10"/>
+  <text class="note" x="928" y="484">后面的数据段虽然到达，但顺序不连续，</text>
+  <text class="note" x="928" y="508">接收方无法向上交付，只能一直确认 1001；</text>
+  <text class="note" x="928" y="532">在缺失的数据被补齐之前，确认序号不会前进。</text>
+
+  <!-- 左侧：重发触发条件的框注 -->
+  <rect class="callout" x="44" y="396" width="184" height="96" rx="10"/>
+  <text class="callout-text" x="64" y="428">收到 3 个同样的</text>
+  <text class="callout-text" x="64" y="452">确认应答时，</text>
+  <text class="callout-text" x="64" y="476">则进行重发。</text>
+  <path class="link" d="M 228 486 L 312 496" marker-end="url(#dl-link)"/>
+</svg>

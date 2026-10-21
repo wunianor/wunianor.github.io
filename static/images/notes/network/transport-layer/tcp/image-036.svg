@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 500" width="1180" height="500" role="img" aria-labelledby="tcp-win-title tcp-win-desc">
+  <title id="tcp-win-title">滑动窗口与发送缓冲区</title>
+  <desc id="tcp-win-desc">发送缓冲区分成已发送已应答、已发送但未接收到应答/可发送（滑动窗口）与待发送三段，滑动窗口由 start 与 end 两个端点界定，窗口大小为对方接收缓冲区、拥塞窗口与本地待发数据三者中的最小值。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .seg-acked { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.25; }
+      .seg-win { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.6; }
+      .seg-pend { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      .tick { stroke: #93c5fd; stroke-width: 1; }
+      .axis-tick { stroke: #94a3b8; stroke-width: 1; }
+      .brace { stroke: #475569; stroke-width: 1.4; fill: none; }
+      .ptr { stroke: #1d4ed8; stroke-width: 1.6; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .cell { fill: #0f172a; font-size: 13.5px; font-weight: 600; }
+      .seg-label { fill: #0f172a; font-size: 14px; font-weight: 600; }
+      .seg-label-win { fill: #1d4ed8; font-size: 14px; font-weight: 600; }
+      .ptr-label { fill: #1d4ed8; font-size: 14px; font-weight: 600; }
+      .card-title { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .formula { fill: #1e293b; font-size: 16px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .code { fill: #1d4ed8; font-size: 15px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .note { fill: #475569; font-size: 14px; }
+      .dot { fill: #94a3b8; }
+    </style>
+    <marker id="win-pt" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1180" height="500"/>
+  <text class="title" x="48" y="46">滑动窗口与发送缓冲区</text>
+  <text class="muted" x="48" y="72">发送缓冲区分成三段，滑动窗口就是中间「已发送但未接收到应答/可发送」的那一段</text>
+
+  <!-- 端点标注 -->
+  <text class="ptr-label" x="272" y="98" text-anchor="middle">start</text>
+  <path class="ptr" d="M 272 104 L 272 126" marker-end="url(#win-pt)"/>
+  <text class="ptr-label" x="696" y="98" text-anchor="middle">end</text>
+  <path class="ptr" d="M 696 104 L 696 126" marker-end="url(#win-pt)"/>
+
+  <!-- 字节流格子 -->
+  <rect class="seg-acked" x="60" y="130" width="212" height="66"/>
+  <rect class="seg-win" x="272" y="130" width="424" height="66"/>
+  <rect class="seg-pend" x="696" y="130" width="424" height="66"/>
+  <line class="tick" x1="166" y1="130" x2="166" y2="196"/>
+  <line class="tick" x1="272" y1="130" x2="272" y2="196"/>
+  <line class="tick" x1="378" y1="130" x2="378" y2="196"/>
+  <line class="tick" x1="484" y1="130" x2="484" y2="196"/>
+  <line class="tick" x1="590" y1="130" x2="590" y2="196"/>
+  <line class="tick" x1="696" y1="130" x2="696" y2="196"/>
+  <line class="tick" x1="802" y1="130" x2="802" y2="196"/>
+  <line class="tick" x1="908" y1="130" x2="908" y2="196"/>
+  <line class="tick" x1="1014" y1="130" x2="1014" y2="196"/>
+
+  <!-- 分界处向下的短刻度 + 边界字节编号（写在分界处下方） -->
+  <path class="axis-tick" d="M 60 196 L 60 204 M 166 196 L 166 204 M 272 196 L 272 204 M 378 196 L 378 204 M 484 196 L 484 204 M 590 196 L 590 204 M 696 196 L 696 204 M 802 196 L 802 204 M 908 196 L 908 204 M 1014 196 L 1014 204"/>
+
+  <text class="cell" x="60" y="214" text-anchor="middle">1</text>
+  <text class="cell" x="166" y="214" text-anchor="middle">1001</text>
+  <text class="cell" x="272" y="214" text-anchor="middle">2001</text>
+  <text class="cell" x="378" y="214" text-anchor="middle">3001</text>
+  <text class="cell" x="484" y="214" text-anchor="middle">4001</text>
+  <text class="cell" x="590" y="214" text-anchor="middle">5001</text>
+  <text class="cell" x="696" y="214" text-anchor="middle">6001</text>
+  <text class="cell" x="802" y="214" text-anchor="middle">7001</text>
+  <text class="cell" x="908" y="214" text-anchor="middle">8001</text>
+  <text class="cell" x="1014" y="214" text-anchor="middle">9001</text>
+  <text class="cell" x="1100" y="214" text-anchor="middle">……</text>
+
+  <!-- 三段大括号 -->
+  <path class="brace" d="M 60 224 Q 60 248 166 248 Q 272 248 272 224"/>
+  <path class="brace" d="M 272 224 Q 272 248 484 248 Q 696 248 696 224"/>
+  <path class="brace" d="M 696 224 Q 696 248 908 248 Q 1120 248 1120 224"/>
+
+  <text class="seg-label" x="166" y="274" text-anchor="middle">已发送已应答</text>
+  <text class="seg-label-win" x="484" y="274" text-anchor="middle">已发送但未接收到应答/可发送（滑动窗口）</text>
+  <text class="seg-label" x="908" y="274" text-anchor="middle">待发送</text>
+
+  <!-- 公式卡片 -->
+  <rect class="card" x="48" y="298" width="1084" height="150" rx="12"/>
+  <text class="card-title" x="76" y="330">窗口大小与窗口端点</text>
+  <text class="formula" x="76" y="368">窗口大小 = min(对方接收缓冲区大小, 拥塞窗口大小, 发送缓冲区的数据大小)</text>
+  <text class="code" x="76" y="404">start = 确认序号</text>
+  <text class="code" x="520" y="404">end = 确认序号 + win大小</text>
+  <text class="note" x="76" y="434">滑动窗口是发送缓冲区的一部分；滑动窗口是环状的，不会越界。</text>
+
+</svg>

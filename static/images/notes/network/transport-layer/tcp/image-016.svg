@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 640" width="680" height="640" role="img" aria-labelledby="tcp-flow-title tcp-flow-desc">
+  <title id="tcp-flow-title">应用层与传输层 TCP 的分层数据流</title>
+  <desc id="tcp-flow-desc">应用层与传输层 TCP 之间靠系统调用拷贝数据：发送方向用 write()、send() 把数据写进发送缓冲区，接收方向用 read()、recv() 从接收缓冲区把数据取回用户级缓冲区。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .user-box { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.25; }
+      .buf-box { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.4; }
+      .divider { stroke: #93c5fd; stroke-width: 1.6; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .layer-name { fill: #1d4ed8; font-size: 15px; font-weight: 600; }
+      .cell { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .cell-sm { fill: #0f172a; font-size: 13.5px; font-weight: 600; }
+      .note { fill: #334155; font-size: 14px; }
+      .mono-sm { fill: #475569; font-size: 12.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .pin { fill: #1d4ed8; font-size: 13.5px; font-weight: 600; }
+      .pin-end { fill: #b45309; font-size: 13.5px; font-weight: 600; }
+      .flow { stroke: #1d4ed8; stroke-width: 1.75; fill: none; }
+      .flow-back { stroke: #b45309; stroke-width: 1.75; fill: none; }
+      .leader { stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; }
+    </style>
+    <marker id="arw-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8" stroke="none"/>
+    </marker>
+    <marker id="arw-amber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="680" height="640"/>
+  <text class="title" x="40" y="50">应用层与传输层 TCP 的数据流</text>
+  <text class="muted" x="40" y="76">应用层只把数据交给发送缓冲区，其余交给 TCP</text>
+
+  <rect class="card" x="40" y="96" width="600" height="482" rx="12"/>
+
+  <!-- 应用层 -->
+  <text class="layer-name" x="64" y="128">应用层</text>
+  <rect class="user-box" x="96" y="150" width="440" height="52" rx="8"/>
+  <text class="cell-sm" x="316" y="182" text-anchor="middle">用户级缓冲区</text>
+
+  <!-- 分界线 -->
+  <line class="divider" x1="64" y1="300" x2="616" y2="300"/>
+
+  <!-- 传输层 -->
+  <text class="layer-name" x="64" y="378">传输层 TCP</text>
+  <rect class="buf-box" x="96" y="400" width="200" height="136" rx="8"/>
+  <text class="cell" x="196" y="474" text-anchor="middle">发送缓冲区</text>
+  <rect class="buf-box" x="336" y="400" width="200" height="136" rx="8"/>
+  <text class="cell" x="436" y="474" text-anchor="middle">接收缓冲区</text>
+
+  <!-- 上行：应用层把数据写进发送缓冲区 -->
+  <path class="flow" d="M 196 204 L 196 398" marker-end="url(#arw-blue)"/>
+  <text class="pin" x="208" y="246">发送</text>
+  <text class="mono-sm" x="238" y="246">(write / send)</text>
+
+  <!-- 下行：应用层从接收缓冲区取走数据 -->
+  <path class="flow-back" d="M 436 398 L 436 204" marker-end="url(#arw-amber)"/>
+  <text class="pin-end" x="448" y="246">接收</text>
+  <text class="mono-sm" x="478" y="246">(read / recv)</text>
+
+  <path class="leader" d="M 196 572 L 196 540"/>
+  <text class="note" x="64" y="588">应用层认为数据已经发送，但实际上数据可能还在发送缓冲区内</text>
+  <text class="note" x="64" y="612">并没有发送出去，数据发送由 TCP 控制</text>
+</svg>

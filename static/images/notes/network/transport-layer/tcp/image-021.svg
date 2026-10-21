@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 600" width="940" height="600" role="img" aria-labelledby="tcp021-title tcp021-desc">
+  <title id="tcp021-title">确认应答机制时序图</title>
+  <desc id="tcp021-desc">主机A 把数据分成 1~1000、1001~2000 两段依次发给主机B，主机B 每收到一段就回一个带确认序号的应答，告诉 A 下一次从哪个字节开始发；四条报文线都自上而下带一点下斜，表示报文在时间上的先后。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .axis { stroke: #cbd5e1; stroke-width: 1.5; }
+      .data-line { stroke: #1d4ed8; stroke-width: 1.8; fill: none; }
+      .ack-line { stroke: #b45309; stroke-width: 1.8; fill: none; }
+      .time-line { stroke: #1d4ed8; stroke-width: 1.6; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .host { fill: #0f172a; font-size: 16px; font-weight: 600; }
+      .data-label { fill: #1d4ed8; font-size: 14px; font-weight: 600; }
+      .ack-label { fill: #b45309; font-size: 14px; font-weight: 600; }
+      .time-label { fill: #1d4ed8; font-size: 14px; font-weight: 600; }
+      .note { fill: #475569; font-size: 14px; }
+    </style>
+    <marker id="tcp021-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8" stroke="none"/>
+    </marker>
+    <marker id="tcp021-amber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="940" height="600"/>
+  <text class="title" x="44" y="52">确认应答机制</text>
+  <text class="muted" x="44" y="80">TCP 每发一段数据都要被应答，而应答报文本身不需要再被应答；报文线下斜表示时间的先后</text>
+
+  <rect class="card" x="200" y="100" width="160" height="46" rx="10"/>
+  <text class="host" x="280" y="129" text-anchor="middle">主机A</text>
+  <rect class="card" x="600" y="100" width="160" height="46" rx="10"/>
+  <text class="host" x="680" y="129" text-anchor="middle">主机B</text>
+
+  <line class="axis" x1="280" y1="160" x2="280" y2="486"/>
+  <line class="axis" x1="680" y1="160" x2="680" y2="486"/>
+
+  <path class="time-line" d="M 196 200 L 196 462" marker-end="url(#tcp021-blue)"/>
+  <text class="time-label" x="176" y="331" text-anchor="middle" transform="rotate(-90 176 331)">时间轴</text>
+
+  <!-- 数据 1：A → B，下斜表示经过了一段时间 -->
+  <path class="data-line" d="M 280 200 L 680 240" marker-end="url(#tcp021-blue)"/>
+  <text class="data-label" x="480" y="200" text-anchor="middle">数据（1 ~ 1000）</text>
+
+  <!-- 应答 1：B → A -->
+  <path class="ack-line" d="M 680 272 L 280 312" marker-end="url(#tcp021-amber)"/>
+  <text class="ack-label" x="480" y="272" text-anchor="middle">确认应答（下一个是1001）</text>
+
+  <!-- 数据 2：A → B -->
+  <path class="data-line" d="M 280 344 L 680 384" marker-end="url(#tcp021-blue)"/>
+  <text class="data-label" x="480" y="344" text-anchor="middle">数据（1001 ~ 2000）</text>
+
+  <!-- 应答 2：B → A -->
+  <path class="ack-line" d="M 680 416 L 280 456" marker-end="url(#tcp021-amber)"/>
+  <text class="ack-label" x="480" y="416" text-anchor="middle">确认应答（下一个是2001）</text>
+
+  <text class="note" x="44" y="524">每个 ACK 都带有对应的确认序号，意思是告诉发送者：</text>
+  <text class="note" x="44" y="552">「我已经收到了哪些数据，下一次你从哪里开始发」。</text>
+</svg>
