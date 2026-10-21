@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 560" width="940" height="560" role="img" aria-labelledby="tcp-handshake-title tcp-handshake-desc">
+  <title id="tcp-handshake-title">三次握手时序</title>
+  <desc id="tcp-handshake-desc">客户端与服务器的三次握手时序图：客户端发送 SYN 后处于 SYN_SENT，服务器回复 SYN + ACK 后处于 SYN_RCVD，客户端再发送 ACK，双方进入 ESTABLISHED。连接建立成功与上层有没有 accept() 没有关系；三条报文线自上而下带一点下斜，表示报文在时间上的先后。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .chip { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .label { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .msg { fill: #1e293b; font-size: 14px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .state { fill: #1e293b; font-size: 13px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .axis { fill: #94a3b8; font-size: 13px; }
+      .lifeline { stroke: #94a3b8; stroke-width: 1.4; stroke-dasharray: 6 4; fill: none; }
+      .tick { stroke: #cbd5e1; stroke-width: 1.25; }
+      .msg-line { stroke: #334155; stroke-width: 1.6; fill: none; }
+      .time { stroke: #94a3b8; stroke-width: 1.4; fill: none; }
+    </style>
+    <marker id="ah" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#334155" stroke="none"/>
+    </marker>
+    <marker id="ah-gray" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="940" height="560"/>
+  <text class="title" x="48" y="52">三次握手时序</text>
+  <text class="muted" x="48" y="78">连接建立前双方都处于 CLOSED，三次握手由双方的操作系统自动完成，连接建立成功与上层有没有 accept() 没有关系</text>
+
+  <text class="axis" x="70" y="142" text-anchor="middle">时间轴</text>
+  <path class="time" d="M 70 152 L 70 520" marker-end="url(#ah-gray)"/>
+
+  <path class="lifeline" d="M 300 150 L 300 520"/>
+  <path class="lifeline" d="M 640 150 L 640 520"/>
+  <rect class="card" x="240" y="108" width="120" height="38" rx="8"/>
+  <text class="label" x="300" y="133" text-anchor="middle">客户端 A</text>
+  <rect class="card" x="580" y="108" width="120" height="38" rx="8"/>
+  <text class="label" x="640" y="133" text-anchor="middle">服务器 B</text>
+
+  <path class="msg-line" d="M 300 230 L 636 264" marker-end="url(#ah)"/>
+  <text class="msg" x="470" y="227" text-anchor="middle">SYN</text>
+  <path class="msg-line" d="M 640 320 L 304 354" marker-end="url(#ah)"/>
+  <text class="msg" x="470" y="317" text-anchor="middle">SYN + ACK</text>
+  <path class="msg-line" d="M 300 410 L 636 444" marker-end="url(#ah)"/>
+  <text class="msg" x="470" y="407" text-anchor="middle">ACK</text>
+
+  <rect class="chip" x="202" y="163" width="78" height="24" rx="6"/>
+  <text class="state" x="241" y="180" text-anchor="middle">CLOSED</text>
+  <path class="tick" d="M 280 175 L 300 175"/>
+
+  <rect class="chip" x="184" y="218" width="96" height="24" rx="6"/>
+  <text class="state" x="232" y="235" text-anchor="middle">SYN_SENT</text>
+  <path class="tick" d="M 280 230 L 300 230"/>
+
+  <rect class="chip" x="160" y="398" width="120" height="24" rx="6"/>
+  <text class="state" x="220" y="415" text-anchor="middle">ESTABLISHED</text>
+  <path class="tick" d="M 280 410 L 300 410"/>
+
+  <rect class="chip" x="660" y="163" width="78" height="24" rx="6"/>
+  <text class="state" x="699" y="180" text-anchor="middle">CLOSED</text>
+  <path class="tick" d="M 640 175 L 660 175"/>
+
+  <rect class="chip" x="660" y="203" width="78" height="24" rx="6"/>
+  <text class="state" x="699" y="220" text-anchor="middle">LISTEN</text>
+  <path class="tick" d="M 640 215 L 660 215"/>
+
+  <rect class="chip" x="660" y="308" width="96" height="24" rx="6"/>
+  <text class="state" x="708" y="325" text-anchor="middle">SYN_RCVD</text>
+  <path class="tick" d="M 640 320 L 660 320"/>
+
+  <rect class="chip" x="660" y="432" width="120" height="24" rx="6"/>
+  <text class="state" x="720" y="449" text-anchor="middle">ESTABLISHED</text>
+  <path class="tick" d="M 640 444 L 660 444"/>
+
+</svg>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1140" width="1180" height="1140" role="img" aria-labelledby="tcp-skb-title tcp-skb-desc">
+  <title id="tcp-skb-title">文件与 socket 的关系，以及 sk_buff 报文缓冲区</title>
+  <desc id="tcp-skb-desc">上半部分从 task_struct 经 files_struct、fd_array、struct file 找到 struct socket 与 struct sock；下半部分是 sk_buff 结构体与它管理的报文缓冲区。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .inner { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.2; }
+      .struct { fill: #ffffff; stroke: #93c5fd; stroke-width: 1.3; }
+      .struct-hi { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.4; }
+      .stack { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      .seg-headroom { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.25; }
+      .seg-data { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.25; }
+      .seg-tailroom { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 6 4; }
+      .seg-shared { fill: #fffbeb; stroke: #fcd34d; stroke-width: 1.25; }
+      .arrow { stroke: #64748b; stroke-width: 1.6; fill: none; }
+      .leader { stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .card-title { fill: #0f172a; font-size: 17px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .mono { fill: #1e293b; font-size: 13px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .mono-sm { fill: #1e293b; font-size: 11.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .badge { fill: #1d4ed8; }
+      .badge-t { fill: #ffffff; font-size: 10px; font-weight: 600; }
+      .mono-note { fill: #64748b; font-size: 11.5px; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .sname { fill: #0f172a; font-size: 13px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .note { fill: #475569; font-size: 13.5px; }
+      .note-sm { fill: #475569; font-size: 13px; }
+      .pin { fill: #1d4ed8; font-size: 13.5px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .pin-end { fill: #b45309; font-size: 13.5px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .cell { fill: #0f172a; font-size: 14px; font-weight: 600; }
+    </style>
+    <marker id="sk-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#64748b" stroke="none"/>
+    </marker>
+    <marker id="sk-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#2563eb" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1180" height="1140"/>
+
+  <!-- ================= 上半：文件与 socket 的关系 ================= -->
+  <rect class="card" x="40" y="96" width="1100" height="580" rx="12"/>
+  <text class="card-title" x="68" y="132">文件与 socket 的关系</text>
+  <text class="muted" x="68" y="156">从进程的 task_struct 一路找到传输层的结构体与方法集</text>
+
+  <!-- 协议栈 -->
+
+  <!-- task_struct -->
+  <rect class="struct" x="130" y="208" width="96" height="54" rx="6"/>
+  <text class="sname" x="178" y="241" text-anchor="middle">task_struct</text>
+
+  <!-- files_struct -->
+  <rect class="struct-hi" x="262" y="190" width="182" height="100" rx="6"/>
+  <text class="sname" x="353" y="216" text-anchor="middle">struct files_struct</text>
+  <rect class="inner" x="278" y="230" width="150" height="48" rx="4"/>
+  <text class="mono-sm" x="353" y="250" text-anchor="middle">struct file</text>
+  <text class="mono-sm" x="353" y="269" text-anchor="middle">*fd_array[]</text>
+
+  <!-- struct file -->
+  <rect class="struct-hi" x="475" y="186" width="265" height="118" rx="6"/>
+  <text class="sname" x="491" y="214">struct file</text>
+  <text class="mono-sm" x="491" y="246">struct file_operations *f_op;</text>
+  <text class="mono-sm" x="491" y="272">void *private_data;</text>
+
+  <!-- struct socket -->
+  <rect class="struct-hi" x="835" y="186" width="220" height="118" rx="6"/>
+  <text class="sname" x="851" y="214">struct socket</text>
+  <text class="mono-sm" x="851" y="246">struct sock *sk;</text>
+  <text class="mono-sm" x="851" y="272">struct proto_ops *ops;</text>
+
+  <!-- 连接箭头 -->
+  <path class="arrow" d="M 226 235 L 258 235" marker-end="url(#sk-arrow)"/>
+  <path class="arrow" d="M 444 254 L 471 254" marker-end="url(#sk-arrow)"/>
+  <path class="arrow" d="M 740 272 L 831 272" marker-end="url(#sk-blue)"/>
+  <text class="mono-note" x="788" y="262" text-anchor="middle">private_data</text>
+
+  <!-- 注解 -->
+  <text class="note" x="475" y="328">f_op 指向的是网络相关的方法</text>
+
+  <text class="note" x="850" y="340">区分 socket 类型</text>
+  <text class="mono-note" x="850" y="364">tcp_sock / udp_sock</text>
+  <text class="mono-note" x="850" y="388">SOCK_STREAM / SOCK_DGRAM</text>
+  <text class="mono-note" x="850" y="412">ops 是匹配协议的方法集</text>
+  <text class="mono-note" x="850" y="436">方法多态：同一指针指不同函数</text>
+
+  <!-- sk 指向 struct sock -->
+  <path class="arrow" d="M 1030 304 L 1030 444" marker-end="url(#sk-arrow)"/>
+  <text class="mono-note" x="1042" y="372">sk（指针）</text>
+
+  <!-- struct sock -->
+  <rect class="struct" x="710" y="450" width="340" height="180" rx="6"/>
+  <text class="sname" x="726" y="478">struct sock</text>
+  <text class="mono-sm" x="726" y="508">struct sk_buff_head sk_receive_queue;</text>
+  <text class="mono-sm" x="726" y="532">struct sk_buff_head sk_write_queue;</text>
+  <text class="mono-sm" x="726" y="556">...</text>
+  <text class="mono-sm" x="726" y="586">};</text>
+  <text class="mono-note" x="726" y="646">sk_receive_queue：收到的报文，等 read/recv 取走</text>
+  <text class="mono-note" x="726" y="666">sk_write_queue：待发 + 已发未确认，重传从这里取</text>
+
+  <!-- tcp_sock / udp_sock -->
+  <text class="note" x="370" y="418">变量多态：「子类」结构体内嵌「父类」结构体 ＋ 父类指针作为成员变量</text>
+  <text class="note" x="370" y="440">于是 socket 的 sk 成员可以指向 tcp_sock，也可以指向 udp_sock</text>
+  <rect class="struct" x="370" y="450" width="290" height="86" rx="6"/>
+  <text class="sname" x="386" y="476">struct tcp_sock</text>
+  <text class="mono-sm" x="386" y="500">{</text>
+  <text class="mono-sm" x="402" y="522">struct sock sk;  ...</text>
+  <rect class="struct" x="370" y="544" width="290" height="86" rx="6"/>
+  <text class="sname" x="386" y="570">struct udp_sock</text>
+  <text class="mono-sm" x="386" y="594">{</text>
+  <text class="mono-sm" x="402" y="616">struct sock sk;  ...</text>
+  <path class="arrow" d="M 660 493 L 706 493" marker-end="url(#sk-arrow)"/>
+  <text class="mono-note" x="685" y="485" text-anchor="middle">内嵌</text>
+  <path class="arrow" d="M 660 587 L 706 587" marker-end="url(#sk-arrow)"/>
+  <text class="mono-note" x="685" y="579" text-anchor="middle">内嵌</text>
+
+  <!-- ================= 下半：sk_buff 与报文缓冲区 ================= -->
+  <rect class="card" x="40" y="704" width="1100" height="400" rx="12"/>
+  <text class="card-title" x="68" y="740">sk_buff 与报文缓冲区</text>
+
+  <rect x="64" y="768" width="420" height="240" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.25"/>
+  <text class="mono" x="84" y="798">struct sk_buff {</text>
+  <text class="mono" x="104" y="826">sk_buff_data_t  tail;</text>
+  <text class="mono" x="104" y="854">sk_buff_data_t  end;</text>
+  <text class="mono" x="104" y="882">unsigned char  *head,</text>
+  <text class="mono" x="208" y="910">*data;</text>
+  <text class="mono" x="104" y="938">unsigned int    truesize;</text>
+  <text class="mono-note" x="104" y="966">...</text>
+  <text class="mono" x="84" y="994">};</text>
+
+  <!-- 缓冲区 -->
+  <text class="pin" x="520" y="810" text-anchor="middle">head</text>
+  <text class="pin" x="670" y="810" text-anchor="middle">data</text>
+  <text class="pin-end" x="930" y="810" text-anchor="middle">tail</text>
+  <text class="pin-end" x="1060" y="810" text-anchor="middle">end</text>
+  <rect class="seg-headroom" x="520" y="820" width="150" height="80"/>
+  <rect class="seg-data" x="670" y="820" width="260" height="80"/>
+  <rect class="seg-tailroom" x="930" y="820" width="130" height="80"/>
+  <rect class="seg-shared" x="1060" y="820" width="80" height="80"/>
+  <text class="note" x="595" y="866" text-anchor="middle">头空间</text>
+  <text class="cell" x="800" y="866" text-anchor="middle">数据</text>
+  <text class="note" x="995" y="866" text-anchor="middle">尾空间</text>
+  <path class="leader" d="M 520 814 L 520 819"/>
+  <path class="leader" d="M 670 814 L 670 819"/>
+  <path class="leader" d="M 930 814 L 930 819"/>
+  <path class="leader" d="M 1060 814 L 1060 819"/>
+  <path class="leader" d="M 1100 904 L 1100 916"/>
+  <text class="mono-note" x="1140" y="930" text-anchor="end">skb_shared_info</text>
+
+  <text class="note-sm" x="520" y="964">head / data 是指针；tail / end 是相对 head 的偏移量（sk_buff_data_t）。</text>
+  <text class="note-sm" x="520" y="988">加协议头时 data 前移，剥协议头时 data 后移，只是移动指针。</text>
+
+  <text class="note" x="520" y="1022">服务器收到多个报文，报文是要被管理的？如何管理呢？？先描述，再组织</text>
+  <text class="note" x="520" y="1046">传输层、网络层、数据链路层的解包操作都在接收缓冲区中操作，不需要繁琐的拷贝，只是指针移动</text>
+  <text class="note" x="520" y="1070">封装和解包，本质只要移动指针就可以</text>
+</svg>

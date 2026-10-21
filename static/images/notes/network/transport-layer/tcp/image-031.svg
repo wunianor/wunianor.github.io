@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 680" width="940" height="680" role="img" aria-labelledby="tcp-queues-title tcp-queues-desc">
+  <title id="tcp-queues-title">全连接队列与半连接队列</title>
+  <desc id="tcp-queues-desc">服务器端把未完成三次握手的连接放在半连接队列，把已完成三次握手、等待被 accept 摘取的连接放在全连接队列，accept 从全连接队列取出连接。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .card-amber { fill: #fffbeb; stroke: #fcd34d; stroke-width: 1.25; }
+      .box-full { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.25; }
+      .box-half { fill: #fffbeb; stroke: #fcd34d; stroke-width: 1.25; stroke-dasharray: 5 3; }
+      .circle-accept { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.5; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .label { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .code { fill: #1e293b; font-size: 15px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .note { fill: #475569; font-size: 13.5px; }
+      .pin-end { fill: #b45309; font-size: 14px; font-weight: 600; }
+      .dot { fill: #94a3b8; }
+      .flow { stroke: #334155; stroke-width: 1.5; fill: none; }
+      .flow-amber { stroke: #b45309; stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; }
+      .tick { stroke: #cbd5e1; stroke-width: 1.25; }
+    </style>
+    <marker id="ah" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#334155" stroke="none"/>
+    </marker>
+    <marker id="ah-amber" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="940" height="680"/>
+  <text class="title" x="48" y="52">全连接队列与半连接队列</text>
+  <text class="muted" x="48" y="78">服务器端把「未完成」和「已完成」三次握手的连接分开排队管理</text>
+
+  <rect class="card" x="56" y="104" width="540" height="456" rx="14"/>
+  <text class="label" x="80" y="138">服务器端 TCP 层</text>
+
+  <circle class="circle-accept" cx="200" cy="224" r="40"/>
+  <text class="code" x="200" y="230" text-anchor="middle">accept</text>
+  <text class="note" x="258" y="214">应用层调用 accept()，</text>
+  <text class="note" x="258" y="236">从队列头部摘取一个连接</text>
+
+  <path class="flow" d="M 200 322 L 200 268" marker-end="url(#ah)"/>
+
+  <rect class="box-full" x="110" y="326" width="64" height="64" rx="4"/>
+  <rect class="box-full" x="190" y="326" width="64" height="64" rx="4"/>
+  <rect class="box-full" x="270" y="326" width="64" height="64" rx="4"/>
+  <rect class="box-full" x="350" y="326" width="64" height="64" rx="4"/>
+  <text class="label" x="440" y="340">全连接队列</text>
+  <text class="note" x="440" y="366">已完成三次握手、</text>
+  <text class="note" x="440" y="388">等待被 accept() 摘取</text>
+
+  <path class="flow-amber" d="M 262 456 L 262 394" marker-end="url(#ah-amber)"/>
+  <text class="note" x="290" y="416">完成三次握手</text>
+  <text class="note" x="290" y="438">后移入全连接队列</text>
+
+  <rect class="box-half" x="110" y="460" width="64" height="64" rx="4"/>
+  <rect class="box-half" x="190" y="460" width="64" height="64" rx="4"/>
+  <rect class="box-half" x="270" y="460" width="64" height="64" rx="4"/>
+  <rect class="box-half" x="350" y="460" width="64" height="64" rx="4"/>
+  <text class="label" x="440" y="474">半连接队列</text>
+  <text class="note" x="440" y="500">处于 SYN_RCVD、</text>
+  <text class="note" x="440" y="522">尚未完成三次握手的连接</text>
+
+  <rect class="card-amber" x="628" y="104" width="264" height="150" rx="12"/>
+  <text class="pin-end" x="652" y="138">listen 的第二个参数</text>
+  <text class="note" x="652" y="170">backlog + 1 表示底层</text>
+  <text class="note" x="652" y="194">已经建立好的连接队列</text>
+  <text class="note" x="652" y="218">的最大长度。</text>
+
+  <rect class="card" x="628" y="278" width="264" height="196" rx="12"/>
+  <text class="label" x="652" y="312">两个队列的差别</text>
+  <rect class="box-full" x="652" y="330" width="20" height="20" rx="3"/>
+  <text class="note" x="684" y="346">全连接队列</text>
+  <text class="note" x="684" y="368">已完成三次握手</text>
+  <rect class="box-half" x="652" y="392" width="20" height="20" rx="3"/>
+  <text class="note" x="684" y="408">半连接队列</text>
+  <text class="note" x="684" y="430">处于 SYN_RCVD、</text>
+  <text class="note" x="684" y="452">尚未完成三次握手</text>
+
+  <circle class="dot" cx="60" cy="596" r="3.5"/>
+  <text class="note" x="76" y="601">全连接队列满时，新的第三次握手报文会被直接丢弃，并把该连接放入半连接队列。</text>
+  <circle class="dot" cx="60" cy="624" r="3.5"/>
+  <text class="note" x="76" y="629">半连接队列内的连接不会长时间维护，过一段时间就会释放。</text>
+</svg>

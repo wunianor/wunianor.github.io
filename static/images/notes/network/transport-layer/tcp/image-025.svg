@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1120" width="1180" height="1120" role="img" aria-labelledby="tcp025-title tcp025-desc">
+  <title id="tcp025-title">连接管理机制状态机</title>
+  <desc id="tcp025-desc">客户端与服务器两侧的 TCP 层从 CLOSED 出发，经三次握手进入 ESTABLISHED，在循环收发数据之后经四次挥手依次经过 FIN_WAIT、CLOSE_WAIT、LAST_ACK、TIME_WAIT，最后回到 CLOSED。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .axis { stroke: #cbd5e1; stroke-width: 1.5; }
+      .pill { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.25; }
+      .arrow-data { stroke: #1d4ed8; stroke-width: 1.8; fill: none; }
+      .arrow-ctrl { stroke: #b45309; stroke-width: 1.8; fill: none; }
+      .loop-bracket { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .col-head { fill: #475569; font-size: 14px; font-weight: 600; }
+      .call { fill: #334155; font-size: 13px; }
+      .state { fill: #1d4ed8; font-size: 12.5px; font-weight: 600; }
+      .lb-data { fill: #1d4ed8; font-size: 13px; font-weight: 600; }
+      .lb-ctrl { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .loop-label { fill: #64748b; font-size: 13px; font-weight: 600; }
+    </style>
+    <marker id="tcp025-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#1d4ed8" stroke="none"/>
+    </marker>
+    <marker id="tcp025-amber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1180" height="1120"/>
+  <text class="title" x="44" y="50">连接管理机制状态机</text>
+  <text class="muted" x="44" y="80">在正常情况下，TCP 要经过三次握手建立连接，四次挥手断开连接；两列 TCP 层的竖线是各自的时间轴，时间自上而下推进</text>
+
+  <text class="col-head" x="200" y="124" text-anchor="middle">客户端应用层</text>
+  <text class="col-head" x="420" y="124" text-anchor="middle">客户端TCP层</text>
+  <text class="col-head" x="700" y="124" text-anchor="middle">服务器端TCP层</text>
+  <text class="col-head" x="990" y="124" text-anchor="middle">服务器端应用层</text>
+
+  <line class="axis" x1="420" y1="142" x2="420" y2="1105"/>
+  <line class="axis" x1="700" y1="142" x2="700" y2="1105"/>
+
+  <!-- 客户端状态 -->
+  <rect class="pill" x="300" y="191" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="206">CLOSED</text>
+  <rect class="pill" x="300" y="387" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="402">SYN_SENT</text>
+  <rect class="pill" x="300" y="481" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="496">ESTABLISHED</text>
+  <rect class="pill" x="300" y="857" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="872">FIN_WAIT_1</text>
+  <rect class="pill" x="300" y="921" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="936">FIN_WAIT_2</text>
+  <rect class="pill" x="300" y="1019" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="1034">TIME_WAIT</text>
+  <rect class="pill" x="300" y="1069" width="112" height="22" rx="7"/>
+  <text class="state" x="308" y="1084">CLOSED</text>
+
+  <!-- 服务器端状态 -->
+  <rect class="pill" x="708" y="191" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="206">CLOSED</text>
+  <rect class="pill" x="708" y="317" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="332">LISTEN</text>
+  <rect class="pill" x="708" y="431" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="446">SYN_RCVD</text>
+  <rect class="pill" x="708" y="507" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="522">ESTABLISHED</text>
+  <rect class="pill" x="708" y="895" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="910">CLOSE_WAIT</text>
+  <rect class="pill" x="708" y="959" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="974">LAST_ACK</text>
+  <rect class="pill" x="708" y="1045" width="112" height="22" rx="7"/>
+  <text class="state" x="716" y="1060">CLOSED</text>
+
+  <!-- 客户端应用层调用 -->
+  <text class="call" x="292" y="192" text-anchor="end">fd = socket()</text>
+  <text class="call" x="292" y="212" text-anchor="end">分配一个文件描述符</text>
+  <text class="call" x="292" y="378" text-anchor="end">connect(fd, 服务器地址端口)</text>
+  <text class="call" x="292" y="398" text-anchor="end">发起连接请求</text>
+  <text class="call" x="292" y="418" text-anchor="end">阻塞等待服务器应答</text>
+  <text class="call" x="292" y="492" text-anchor="end">connect返回</text>
+  <text class="call" x="292" y="602" text-anchor="end">write(fd, buf, size)</text>
+  <text class="call" x="292" y="622" text-anchor="end">发送数据请求</text>
+  <text class="call" x="292" y="718" text-anchor="end">read(fd, buf, size)</text>
+  <text class="call" x="292" y="738" text-anchor="end">阻塞等待客户端数据应答</text>
+  <text class="call" x="292" y="782" text-anchor="end">read返回</text>
+  <text class="call" x="292" y="868" text-anchor="end">close(fd) 关闭连接</text>
+
+  <!-- 服务器端应用层调用 -->
+  <text class="call" x="850" y="192">listenfd = socket()</text>
+  <text class="call" x="850" y="212">分配一个文件描述符</text>
+  <text class="call" x="850" y="248">bind(listenfd, 服务器地址端口)</text>
+  <text class="call" x="850" y="268">绑定listenfd的源地址</text>
+  <text class="call" x="850" y="288">目标地址任意</text>
+  <text class="call" x="850" y="318">listen(listenfd, 连接队列长度)</text>
+  <text class="call" x="850" y="338">使listenfd成为一个监听描述符</text>
+  <text class="call" x="850" y="378">connfd = accept(listenfd, 客户端地址端口)</text>
+  <text class="call" x="850" y="398">阻塞等待客户端连接</text>
+  <text class="call" x="850" y="508">accept返回</text>
+  <text class="call" x="850" y="528">分配新的描述符connfd和客户端通信</text>
+  <text class="call" x="850" y="602">read(connfd, buf, size)</text>
+  <text class="call" x="850" y="622">阻塞等待客户端数据请求</text>
+  <text class="call" x="850" y="672">read返回</text>
+  <text class="call" x="850" y="692">处理客户端请求</text>
+  <text class="call" x="850" y="718">write(connfd, buf, size)</text>
+  <text class="call" x="850" y="738">发送数据应答</text>
+  <text class="call" x="850" y="940">read返回0</text>
+  <text class="call" x="850" y="970">close(connfd)</text>
+
+  <!-- 循环标记 -->
+  <path class="loop-bracket" d="M 122 592 L 110 592 L 110 850 L 122 850"/>
+  <text class="loop-label" x="102" y="711" text-anchor="end">循环</text>
+  <text class="loop-label" x="102" y="733" text-anchor="end">多次</text>
+  <path class="loop-bracket" d="M 1048 592 L 1060 592 L 1060 850 L 1048 850"/>
+  <text class="loop-label" x="1068" y="711">循环</text>
+  <text class="loop-label" x="1068" y="733">多次</text>
+
+  <!-- 报文箭头 -->
+  <path class="arrow-ctrl" d="M 420 398 L 700 424" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="395" text-anchor="middle">SYN</text>
+
+  <path class="arrow-ctrl" d="M 700 442 L 420 468" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="439" text-anchor="middle">SYN+ACK</text>
+
+  <path class="arrow-ctrl" d="M 420 492 L 700 518" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="489" text-anchor="middle">ACK</text>
+
+  <path class="arrow-data" d="M 420 640 L 700 666" marker-end="url(#tcp025-blue)"/>
+  <text class="lb-data" x="560" y="637" text-anchor="middle">DATA</text>
+
+  <path class="arrow-ctrl" d="M 700 690 L 420 716" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="687" text-anchor="middle">ACK</text>
+
+  <path class="arrow-data" d="M 700 764 L 420 790" marker-end="url(#tcp025-blue)"/>
+  <text class="lb-data" x="560" y="761" text-anchor="middle">DATA</text>
+
+  <path class="arrow-ctrl" d="M 420 814 L 700 840" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="811" text-anchor="middle">ACK</text>
+
+  <path class="arrow-ctrl" d="M 420 868 L 700 894" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="865" text-anchor="middle">FIN</text>
+
+  <path class="arrow-ctrl" d="M 700 906 L 420 932" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="903" text-anchor="middle">ACK</text>
+
+  <path class="arrow-ctrl" d="M 700 970 L 420 996" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="967" text-anchor="middle">FIN</text>
+
+  <path class="arrow-ctrl" d="M 420 1030 L 700 1056" marker-end="url(#tcp025-amber)"/>
+  <text class="lb-ctrl" x="560" y="1027" text-anchor="middle">ACK</text>
+</svg>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 660" width="940" height="660" role="img" aria-labelledby="tcp-delack-title tcp-delack-desc">
+  <title id="tcp-delack-title">延迟应答示例</title>
+  <desc id="tcp-delack-desc">主机A 连发 6 段数据，主机B 每收到 2 段才回复一次确认应答，因此只回了 3 次应答，这就是延迟应答。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1.25; }
+      .axis { stroke: #94a3b8; stroke-width: 1.5; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .host { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .data-label { fill: #1e293b; font-size: 14.5px; font-weight: 600; }
+      .ack-label { fill: #b45309; font-size: 14.5px; font-weight: 600; }
+      .col { fill: #475569; font-size: 13.5px; font-weight: 600; }
+      .note { fill: #475569; font-size: 13.5px; }
+      .dot { fill: #94a3b8; }
+    </style>
+    <marker id="arw-data" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#2563eb" stroke="none"/>
+    </marker>
+    <marker id="arw-ack" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309" stroke="none"/>
+    </marker>
+    <marker id="arw-axis" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8" stroke="none"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="940" height="660"/>
+  <text class="title" x="44" y="52">延迟应答示例</text>
+  <text class="muted" x="44" y="78">每隔 N 个报文才应答一次，这里 N 取 2</text>
+
+  <rect class="card" x="200" y="96" width="120" height="38" rx="9"/>
+  <text class="host" x="260" y="121" text-anchor="middle">主机A</text>
+  <rect class="card" x="620" y="96" width="120" height="38" rx="9"/>
+  <text class="host" x="680" y="121" text-anchor="middle">主机B</text>
+  <line x1="320" y1="115" x2="620" y2="115" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <line class="axis" x1="260" y1="152" x2="260" y2="574" marker-end="url(#arw-axis)"/>
+  <line class="axis" x1="680" y1="152" x2="680" y2="574" marker-end="url(#arw-axis)"/>
+
+  <text class="col" x="158" y="178" text-anchor="middle">数据</text>
+  <text class="col" x="744" y="178" text-anchor="middle">确认应答</text>
+
+  <!-- 数据方向 A → B -->
+  <path d="M 260 200 L 680 240" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="205" text-anchor="middle">1 ~ 1000</text>
+
+  <path d="M 260 245 L 680 285" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="250" text-anchor="middle">1001 ~ 2000</text>
+
+  <path d="M 260 290 L 680 330" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="295" text-anchor="middle">2001 ~ 3000</text>
+
+  <path d="M 260 335 L 680 375" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="340" text-anchor="middle">3001 ~ 4000</text>
+
+  <path d="M 260 380 L 680 420" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="385" text-anchor="middle">4001 ~ 5000</text>
+
+  <path d="M 260 425 L 680 465" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#arw-data)"/>
+  <text class="data-label" x="158" y="430" text-anchor="middle">5001 ~ 6000</text>
+
+  <!-- 应答方向 B → A -->
+  <path d="M 680 300 L 260 340" stroke="#b45309" stroke-width="1.6" fill="none" marker-end="url(#arw-ack)"/>
+  <text class="ack-label" x="698" y="305">下一个是 2001</text>
+
+  <path d="M 680 390 L 260 430" stroke="#b45309" stroke-width="1.6" fill="none" marker-end="url(#arw-ack)"/>
+  <text class="ack-label" x="698" y="395">下一个是 4001</text>
+
+  <path d="M 680 480 L 260 520" stroke="#b45309" stroke-width="1.6" fill="none" marker-end="url(#arw-ack)"/>
+  <text class="ack-label" x="698" y="485">下一个是 6001</text>
+
+  <text class="col" x="244" y="596" text-anchor="end">时间</text>
+  <circle class="dot" cx="44" cy="618" r="3.5"/>
+  <text class="note" x="60" y="623">延迟应答：收到报文后不立即应答，等一段时间或攒够 N 个报文再一起应答</text>
+</svg>

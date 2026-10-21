@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-labelledby="tcp-ackloss-title tcp-ackloss-desc">
+  <title id="tcp-ackloss-title">情况一：ACK 丢包</title>
+  <desc id="tcp-ackloss-desc">主机A 每发一段数据，主机B 收到后立即回一个应答，四段数据与四个应答交替出现；其中「下一个是3001」「下一个是4001」两条应答在途中丢失，但最后一条「下一个是5001」携带更大的确认序号，主机A 的窗口照常向前推进。左侧两个窗口快照分别对应收到首个应答后（已确认到 2000）与收到末尾应答后（已确认到 5000）的状态。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .host { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.25; }
+      .axis { stroke: #94a3b8; stroke-width: 1.5; }
+      .data-line { stroke: #2563eb; stroke-width: 2; fill: none; }
+      .ack-line { stroke: #b45309; stroke-width: 2; fill: none; }
+      .lost-mark { stroke: #b45309; stroke-width: 3; stroke-linecap: round; fill: none; }
+      .win-acked { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.25; }
+      .win-cell { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1.4; }
+      .link { stroke: #94a3b8; stroke-width: 1.3; stroke-dasharray: 5 4; fill: none; }
+      text { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; }
+      .title { fill: #0f172a; font-size: 22px; font-weight: 600; }
+      .muted { fill: #64748b; font-size: 13.5px; }
+      .host-label { fill: #0f172a; font-size: 15px; font-weight: 600; }
+      .col-head { fill: #475569; font-size: 13.5px; font-weight: 600; }
+      .lbl-data { fill: #1d4ed8; font-size: 13px; font-weight: 600; }
+      .lbl-ack { fill: #b45309; font-size: 13px; font-weight: 600; }
+      .lost { fill: #b45309; font-size: 12.5px; font-weight: 600; }
+      .win-title { fill: #0f172a; font-size: 13.5px; font-weight: 600; }
+      .win-num { fill: #475569; font-size: 12px; font-weight: 600; font-family: Consolas, "Cascadia Code", ui-monospace, monospace; }
+      .note { fill: #64748b; font-size: 12.5px; }
+      .caption { fill: #334155; font-size: 14px; }
+    </style>
+    <marker id="ak-data" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="ak-ack" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#b45309"/>
+    </marker>
+    <marker id="ak-time" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8"/>
+    </marker>
+    <marker id="ak-link" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 1 2 L 11 6 L 1 10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1200" height="680"/>
+  <text class="title" x="44" y="46">情况一：ACK 丢包</text>
+  <text class="muted" x="44" y="72">窗口 4000 字节，每收到一段数据就回一个应答；其中「下一个是3001」「下一个是4001」两条应答丢失，窗口仍照常推进</text>
+
+  <!-- ===================== 左侧：两个窗口快照 ===================== -->
+  <text class="win-title" x="60" y="213">已确认已应答最后为 2000</text>
+  <rect class="win-acked" x="60" y="221" width="50" height="30"/>
+  <rect class="win-cell" x="110" y="221" width="50" height="30"/>
+  <rect class="win-cell" x="160" y="221" width="50" height="30"/>
+  <rect class="win-cell" x="210" y="221" width="50" height="30"/>
+  <rect class="win-cell" x="260" y="221" width="50" height="30"/>
+  <text class="win-num" x="110" y="267" text-anchor="middle">2001</text>
+  <text class="win-num" x="160" y="267" text-anchor="middle">3001</text>
+  <text class="win-num" x="210" y="267" text-anchor="middle">4001</text>
+  <text class="win-num" x="260" y="267" text-anchor="middle">5001</text>
+  <text class="note" x="60" y="287">滑动窗口 4000 字节</text>
+  <path class="link" d="M 312 236 L 436 236" marker-end="url(#ak-link)"/>
+
+  <text class="win-title" x="60" y="493">已确认已应答最后为 5000</text>
+  <rect class="win-acked" x="60" y="501" width="50" height="30"/>
+  <rect class="win-cell" x="110" y="501" width="50" height="30"/>
+  <rect class="win-cell" x="160" y="501" width="50" height="30"/>
+  <rect class="win-cell" x="210" y="501" width="50" height="30"/>
+  <rect class="win-cell" x="260" y="501" width="50" height="30"/>
+  <text class="win-num" x="110" y="547" text-anchor="middle">5001</text>
+  <text class="win-num" x="160" y="547" text-anchor="middle">6001</text>
+  <text class="win-num" x="210" y="547" text-anchor="middle">7001</text>
+  <text class="win-num" x="260" y="547" text-anchor="middle">8001</text>
+  <text class="note" x="60" y="567">滑动窗口 4000 字节</text>
+  <path class="link" d="M 312 516 L 436 516" marker-end="url(#ak-link)"/>
+
+  <!-- ===================== 右侧：时序图（数据与应答交替） ===================== -->
+  <rect class="host" x="380" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="440" y="121" text-anchor="middle">主机A</text>
+  <rect class="host" x="650" y="94" width="120" height="42" rx="8"/>
+  <text class="host-label" x="710" y="121" text-anchor="middle">主机B</text>
+  <line class="axis" x1="440" y1="148" x2="440" y2="580"/>
+  <line class="axis" x1="710" y1="148" x2="710" y2="580"/>
+
+  <text class="col-head" x="428" y="164" text-anchor="end">数据</text>
+  <text class="col-head" x="726" y="164">确认应答</text>
+
+  <path class="data-line" d="M 440 176 L 706 196" marker-end="url(#ak-data)"/>
+  <text class="lbl-data" x="428" y="182" text-anchor="end">1001~2000</text>
+  <path class="ack-line" d="M 710 216 L 444 236" marker-end="url(#ak-ack)"/>
+  <text class="lbl-ack" x="726" y="222">下一个是2001（接收1~2000字节的数据）</text>
+
+  <path class="data-line" d="M 440 256 L 706 276" marker-end="url(#ak-data)"/>
+  <text class="lbl-data" x="428" y="262" text-anchor="end">2001~3000</text>
+
+  <path class="ack-line" d="M 710 296 L 496 312" marker-end="url(#ak-ack)"/>
+  <text class="lbl-ack" x="726" y="302">下一个是3001（接收1~3000字节的数据）</text>
+  <path class="lost-mark" d="M 464 306 L 480 322 M 480 306 L 464 322"/>
+  <text class="lost" x="472" y="338" text-anchor="middle">丢包</text>
+
+  <path class="data-line" d="M 440 356 L 706 376" marker-end="url(#ak-data)"/>
+  <text class="lbl-data" x="428" y="362" text-anchor="end">3001~4000</text>
+
+  <path class="ack-line" d="M 710 396 L 496 412" marker-end="url(#ak-ack)"/>
+  <text class="lbl-ack" x="726" y="402">下一个是4001（接收1~4000字节的数据）</text>
+  <path class="lost-mark" d="M 464 406 L 480 422 M 480 406 L 464 422"/>
+  <text class="lost" x="472" y="438" text-anchor="middle">丢包</text>
+
+  <path class="data-line" d="M 440 456 L 706 476" marker-end="url(#ak-data)"/>
+  <text class="lbl-data" x="428" y="462" text-anchor="end">4001~5000</text>
+
+  <path class="ack-line" d="M 710 496 L 444 516" marker-end="url(#ak-ack)"/>
+  <text class="lbl-ack" x="726" y="502">下一个是5001（接收1~5000字节的数据）</text>
+
+  <path d="M 440 580 L 440 598" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#ak-time)"/>
+  <text class="note" x="428" y="594" text-anchor="end">时间</text>
+
+  <text class="caption" x="44" y="622">少量 ACK 丢失不影响窗口线性向后更新——后面的应答携带更大的确认序号，</text>
+  <text class="caption" x="44" y="646">主机A 收到后窗口照常向前滑动；左侧两个快照就是收到首个、末尾应答之后的窗口。</text>
+</svg>
